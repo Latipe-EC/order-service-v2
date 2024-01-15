@@ -12,18 +12,13 @@ type OrderMockRepos struct {
 	mock.Mock
 }
 
-func (o OrderMockRepos) FindById(ctx context.Context, Id int) (*order.Order, error) {
-	args := o.Called(ctx, Id)
-	return args.Get(0).(*order.Order), args.Error(1)
-}
-
 func (o OrderMockRepos) FindByItemId(ctx context.Context, itemId string) (*order.OrderItem, error) {
 	args := o.Called(ctx, itemId)
 	return args.Get(0).(*order.OrderItem), args.Error(1)
 }
 
-func (o OrderMockRepos) FindByUUID(ctx context.Context, uuid string) (*order.Order, error) {
-	args := o.Called(ctx, uuid)
+func (o OrderMockRepos) FindByID(ctx context.Context, Id string) (*order.Order, error) {
+	args := o.Called(ctx, Id)
 	return args.Get(0).(*order.Order), args.Error(1)
 }
 
@@ -52,7 +47,7 @@ func (o OrderMockRepos) SearchOrderByStoreID(ctx context.Context, storeId string
 	return args.Get(0).([]order.Order), args.Error(1)
 }
 
-func (o OrderMockRepos) FindOrderLogByOrderId(ctx context.Context, orderId int) ([]order.OrderStatusLog, error) {
+func (o OrderMockRepos) FindOrderLogByOrderId(ctx context.Context, orderId string) ([]order.OrderStatusLog, error) {
 	args := o.Called(ctx, orderId)
 	return args.Get(0).([]order.OrderStatusLog), args.Error(1)
 }
@@ -62,7 +57,7 @@ func (o OrderMockRepos) FindOrderByUserAndProduct(ctx context.Context, userId st
 	return args.Get(0).([]order.Order), args.Error(1)
 }
 
-func (o OrderMockRepos) GetOrderAmountOfStore(ctx context.Context, orderId int) ([]custom_entity.AmountItemOfStoreInOrder, error) {
+func (o OrderMockRepos) GetOrderAmountOfStore(ctx context.Context, orderId string) ([]custom_entity.AmountItemOfStoreInOrder, error) {
 	args := o.Called(ctx, orderId)
 	return args.Get(0).([]custom_entity.AmountItemOfStoreInOrder), args.Error(1)
 }
@@ -77,8 +72,8 @@ func (o OrderMockRepos) Update(ctx context.Context, order order.Order) error {
 	return args.Error(0)
 }
 
-func (o OrderMockRepos) UpdateStatus(ctx context.Context, orderID int, status int, message ...string) error {
-	args := o.Called(ctx, orderID, status, message)
+func (o OrderMockRepos) UpdateStatus(ctx context.Context, orderId string, status int, message ...string) error {
+	args := o.Called(ctx, orderId, status, message)
 	return args.Error(0)
 }
 

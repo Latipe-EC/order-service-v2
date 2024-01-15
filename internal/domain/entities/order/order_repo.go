@@ -7,20 +7,19 @@ import (
 )
 
 type Repository interface {
-	FindById(ctx context.Context, Id int) (*Order, error)
 	FindByItemId(ctx context.Context, itemId string) (*OrderItem, error)
-	FindByUUID(ctx context.Context, uuid string) (*Order, error)
+	FindByID(ctx context.Context, orderId string) (*Order, error)
 	FindOrderByStoreID(ctx context.Context, storeId string, query *pagable.Query, keyword string) ([]Order, error)
 	FindOrderByDelivery(ctx context.Context, deliID string, keyword string, query *pagable.Query) ([]Order, error)
 	FindAll(ctx context.Context, query *pagable.Query) ([]Order, error)
 	FindByUserId(ctx context.Context, userId string, query *pagable.Query) ([]Order, error)
 	SearchOrderByStoreID(ctx context.Context, storeId string, keyword string, query *pagable.Query) ([]Order, error)
-	FindOrderLogByOrderId(ctx context.Context, orderId int) ([]OrderStatusLog, error)
+	FindOrderLogByOrderId(ctx context.Context, orderId string) ([]OrderStatusLog, error)
 	FindOrderByUserAndProduct(ctx context.Context, userId string, productId string) ([]Order, error)
-	GetOrderAmountOfStore(ctx context.Context, orderId int) ([]custom_entity.AmountItemOfStoreInOrder, error)
+	GetOrderAmountOfStore(ctx context.Context, orderId string) ([]custom_entity.AmountItemOfStoreInOrder, error)
 	Save(ctx context.Context, order *Order) error
 	Update(ctx context.Context, order Order) error
-	UpdateStatus(ctx context.Context, orderID int, status int, message ...string) error
+	UpdateStatus(ctx context.Context, orderID string, status int, message ...string) error
 	UpdateOrderItem(ctx context.Context, orderItem string, status int) error
 	Total(ctx context.Context, query *pagable.Query) (int, error)
 	UserQueryTotal(ctx context.Context, userId string, query *pagable.Query) (int, error)

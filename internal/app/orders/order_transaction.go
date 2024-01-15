@@ -18,64 +18,6 @@ import (
 	"time"
 )
 
-func (o orderService) initOrderData(products *prodServDTO.ShopOrders,
-	address *userDTO.GetDetailAddressResponse, deli *deliDto.GetShippingCostResponse, dto *orderDTO.CreateOrderRequest,
-	storeOrder *orderDTO.StoreOrder) *msg.OrderMessage {
-
-	orderMsg := msg.OrderMessage{
-		Status: order.ORDER_SYSTEM_PROCESS,
-		Header: msg.BaseHeader{dto.Header.BearerToken},
-		UserRequest: msg.UserRequest{
-			UserId:   dto.UserRequest.UserId,
-			Username: dto.UserRequest.Username,
-		},
-		SubTotal:      products.TotalPrice,
-		PaymentMethod: storeOrder.PaymentMethod,
-		Vouchers:      storeOrder.VoucherCode,
-
-		Address: msg.OrderAddress{
-			AddressId:       address.Id,
-			ShippingName:    address.ContactName,
-			ShippingPhone:   address.Phone,
-			ShippingAddress: address.DetailAddress,
-		},
-
-		Delivery: msg.Delivery{
-			DeliveryId:    deli.DeliveryId,
-			Name:          deli.DeliveryName,
-			Cost:          deli.Cost,
-			ReceivingDate: deli.ReceiveDate,
-		},
-	}
-
-	discount := 0
-
-	//order detail
-	var orderItems []msg.OrderItemsMessage
-	for index, i := range products.Items {
-		item := msg.OrderItemsMessage{
-			CartId: storeOrder.Items[index].CartId,
-			ProductItem: msg.ProductItem{
-				ProductID:   i.ProductId,
-				ProductName: i.Name,
-				StoreID:     i.StoreId,
-				NameOption:  i.NameOption,
-				OptionID:    i.OptionId,
-				Quantity:    i.Quantity,
-				Price:       int(i.Price),
-				NetPrice:    int(i.PromotionalPrice),
-				Image:       i.Image,
-			},
-		}
-		orderItems = append(orderItems, item)
-		discount += int(i.PromotionalPrice)
-	}
-	orderMsg.OrderItems = orderItems
-	orderMsg.ShippingCost = deli.Cost
-
-	return &orderMsg
-}
-
 func (o orderService) CreateOrder(ctx context.Context, dto *orderDTO.CreateOrderRequest) (*orderDTO.CreateOrderResponse, error) {
 
 	//get product data from product service
@@ -97,6 +39,8 @@ func (o orderService) CreateOrder(ctx context.Context, dto *orderDTO.CreateOrder
 		return nil, err
 	}
 
+	var orders []*order.Order
+
 	// Handle order group by store
 	var orderIDs []string
 	for _, i := range products.Items {
@@ -111,7 +55,7 @@ func (o orderService) CreateOrder(ctx context.Context, dto *orderDTO.CreateOrder
 				dto.StoreOrders = append(dto.StoreOrders[:index], dto.StoreOrders[index+1:]...)
 				break
 			}
-			return nil, errors.ErrBadRequest
+			continue
 		}
 
 		//handle order group by store_order and calculate shipping cost
@@ -122,63 +66,25 @@ func (o orderService) CreateOrder(ctx context.Context, dto *orderDTO.CreateOrder
 		}
 		shippingDetail, err := o.deliServ.CalculateShippingCost(ctx, &shippingReq)
 		if err != nil {
-			return nil, err
+			log.Error(err)
+			continue
 		}
 
 		//init order data
-		orderData := o.initOrderData(&i, userAddress, shippingDetail, dto, &storeOrder)
-
-		// Check if the store order has a voucher to apply a discount to the order
-		if len(storeOrder.VoucherCode) > 0 {
-
-			voucherReq := MappingVoucherRequest(dto, storeOrder.VoucherCode, orderData)
-			voucherDetail, err := o.voucherSer.CheckingVoucher(ctx, &voucherReq)
-			if err != nil {
-				return nil, err
-			}
-
-			if voucherDetail.IsSuccess == true {
-
-				for _, v := range voucherDetail.Items {
-					switch v.VoucherType {
-					case voucherDTO.FREE_SHIP:
-						if shippingDetail.Cost < v.DiscountValue {
-							orderData.ShippingDiscount = shippingDetail.Cost
-						} else {
-							orderData.ShippingDiscount = v.DiscountValue
-						}
-
-					case voucherDTO.DISCOUNT_ORDER:
-						orderData.ItemDiscount = v.DiscountValue
-					}
-
-				}
-				orderData.Vouchers = storeOrder.VoucherCode
-			}
-
+		orderData, err := o.saveOrderIntoDatabase(ctx, dto, userAddress, shippingDetail, &i, &storeOrder)
+		if err != nil {
+			log.Error(err)
+			continue
 		}
 
-		//calculate amount order
-		orderData.SubTotal += orderData.ShippingCost
-		orderData.Amount = orderData.SubTotal - (orderData.ItemDiscount + orderData.ShippingDiscount)
-		orderData.Status = order.ORDER_SYSTEM_PROCESS
-		//gen key order
-
-		orderKey := o.genOrderKey(orderData.UserRequest.UserId)
-		orderData.OrderUUID = orderKey
-		//add key into response
-		orderIDs = append(orderIDs, orderKey)
-
-		if err := o.saveOrder(ctx, orderData); err != nil {
-			return nil, err
-		}
-
-		if err := o.publisher.SendOrderCreatedMessage(orderData); err != nil {
-			return nil, err
-		}
-
+		//add key into response and send order data to orchestration service
+		orderIDs = append(orderIDs, orderData.OrderID)
+		orders = append(orders, orderData)
 	}
 
+	if err := o.publisher.SendOrderCreatedMessage(orders); err != nil {
+		return nil, err
+	}
 	data := orderDTO.CreateOrderResponse{
 		UserOrder: orderDTO.UserRequest{
 			UserId:   dto.UserRequest.UserId,
@@ -191,69 +97,97 @@ func (o orderService) CreateOrder(ctx context.Context, dto *orderDTO.CreateOrder
 	return &data, nil
 }
 
-func (o orderService) saveOrder(ctx context.Context, message *msg.OrderMessage) error {
+func (o orderService) saveOrderIntoDatabase(ctx context.Context, dto *orderDTO.CreateOrderRequest,
+	address *userDTO.GetDetailAddressResponse, deli *deliDto.GetShippingCostResponse,
+	productDetails *prodServDTO.StoreOrder, storeOrder *orderDTO.StoreOrder) (*order.Order, error) {
+
 	orderDAO := order.Order{}
-	orderDAO.OrderUUID = message.OrderUUID
-	orderDAO.Username = message.UserRequest.Username
-	orderDAO.UserId = message.UserRequest.UserId
+	orderDAO.Username = dto.UserRequest.Username
+	orderDAO.UserId = dto.UserRequest.UserId
 
-	if err := mapper.BindingStruct(message, &orderDAO); err != nil {
+	if err := mapper.BindingStruct(dto, &orderDAO); err != nil {
 		log.Errorf("Mapping value from dto to dao failed cause: %s", err)
-		return err
+		return nil, err
 	}
+	orderDAO.ShippingCost = deli.Cost
 
-	//create items in order
 	var orderItems []*order.OrderItem
-	for _, item := range message.OrderItems {
+	for _, item := range productDetails.Items {
 		i := order.OrderItem{
-			ProductID:   item.ProductItem.ProductID,
-			ProductName: item.ProductItem.ProductName,
-			StoreID:     item.ProductItem.StoreID,
-			OptionID:    item.ProductItem.OptionID,
-			NameOption:  item.ProductItem.NameOption,
-			Quantity:    item.ProductItem.Quantity,
-			Price:       item.ProductItem.Price,
-			NetPrice:    item.ProductItem.NetPrice,
-			ProdImg:     item.ProductItem.Image,
-			Order:       &orderDAO,
+			ProductID:   item.ProductId,
+			ProductName: item.Name,
+			StoreID:     item.StoreId,
+			NameOption:  item.NameOption,
+			OptionID:    item.OptionId,
+			Quantity:    item.Quantity,
+			Price:       int(item.Price),
+			NetPrice:    int(item.PromotionalPrice),
+			ProdImg:     item.Image,
 		}
+		//calculate subtotal of item
 		if i.NetPrice != 0 {
 			i.SubTotal = i.NetPrice * i.Quantity
 		} else {
 			i.SubTotal = i.Price * i.Quantity
 		}
-
 		orderItems = append(orderItems, &i)
 	}
 	orderDAO.OrderItem = orderItems
 
-	//calculate order price
-	orderDAO.SubTotal = message.SubTotal
-	orderDAO.Amount = message.Amount
-	orderDAO.ItemDiscount = message.ItemDiscount
-	orderDAO.ShippingDiscount = message.ShippingDiscount
+	// Check if the store order has a voucher to apply a discount to the order
+	if len(storeOrder.VoucherCode) > 0 {
+
+		voucherReq := MappingVoucherRequest(dto, storeOrder.VoucherCode, &orderDAO)
+		voucherDetail, err := o.voucherSer.CheckingVoucher(ctx, &voucherReq)
+		if err != nil {
+			return nil, err
+		}
+
+		if voucherDetail.IsSuccess == true {
+
+			for _, v := range voucherDetail.Items {
+				switch v.VoucherType {
+				case voucherDTO.FREE_SHIP:
+					if deli.Cost < v.DiscountValue {
+						orderDAO.ShippingDiscount = deli.Cost
+					} else {
+						orderDAO.ShippingDiscount = v.DiscountValue
+					}
+
+				case voucherDTO.DISCOUNT_ORDER:
+					orderDAO.ItemDiscount = v.DiscountValue
+				}
+
+			}
+		}
+		orderDAO.Vouchers = strings.Join(storeOrder.VoucherCode, ";")
+	}
+
+	//calculate amount order
+	orderDAO.SubTotal += orderDAO.ShippingCost
+	orderDAO.Amount = orderDAO.SubTotal - (orderDAO.ItemDiscount + orderDAO.ShippingDiscount)
+	orderDAO.Status = order.ORDER_SYSTEM_PROCESS
 
 	//create delivery
-	recvTime, err := order.ParseStringToDate(message.Delivery.ReceivingDate)
+	recvTime, err := order.ParseStringToDate(deli.ReceiveDate)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	deli := order.DeliveryOrder{
-		DeliveryId:      message.Delivery.DeliveryId,
-		DeliveryName:    message.Delivery.Name,
-		Cost:            message.Delivery.Cost,
-		AddressId:       message.Address.AddressId,
-		ShippingName:    message.Address.ShippingName,
-		ShippingPhone:   message.Address.ShippingPhone,
-		ShippingAddress: message.Address.ShippingAddress,
+
+	shippingData := order.DeliveryOrder{
+		DeliveryId:      deli.DeliveryId,
+		DeliveryName:    deli.DeliveryName,
+		Cost:            deli.Cost,
+		AddressId:       address.Id,
+		ShippingName:    address.ContactName,
+		ShippingPhone:   address.Phone,
+		ShippingAddress: address.DetailAddress,
 		ReceivingDate:   *recvTime,
 		Order:           &orderDAO,
 	}
-	orderDAO.Delivery = &deli
+	orderDAO.Delivery = &shippingData
 
-	vouchers := strings.Join(message.Vouchers, ";")
-	orderDAO.VoucherCode = vouchers
-	orderDAO.PaymentMethod = message.PaymentMethod
+	orderDAO.PaymentMethod = storeOrder.PaymentMethod
 	orderDAO.Status = order.ORDER_SYSTEM_PROCESS
 	//create log
 	var logs []*order.OrderStatusLog
@@ -268,14 +202,14 @@ func (o orderService) saveOrder(ctx context.Context, message *msg.OrderMessage) 
 	err = o.orderRepo.Save(ctx, &orderDAO)
 	if err != nil {
 		log.Errorf("the order created failed : %s", err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &orderDAO, nil
 }
 
 func (o orderService) CancelOrder(ctx context.Context, dto *orderDTO.CancelOrderRequest) error {
-	dao, err := o.orderRepo.FindByUUID(ctx, dto.OrderUUID)
+	dao, err := o.orderRepo.FindByID(ctx, dto.OrderID)
 	if err != nil {
 		return err
 	}
@@ -292,12 +226,12 @@ func (o orderService) CancelOrder(ctx context.Context, dto *orderDTO.CancelOrder
 		return errors.OrderCannotCancel
 	}
 
-	if err := o.orderRepo.UpdateStatus(ctx, dao.Id, order.ORDER_CANCEL); err != nil {
+	if err := o.orderRepo.UpdateStatus(ctx, dao.OrderID, order.ORDER_CANCEL); err != nil {
 		return err
 	}
 
 	mess := msg.OrderMessage{
-		OrderUUID:     dao.OrderUUID,
+		OrderID:       dao.OrderID,
 		Status:        order.ORDER_CANCEL,
 		PaymentMethod: dao.PaymentMethod,
 	}
@@ -310,7 +244,7 @@ func (o orderService) CancelOrder(ctx context.Context, dto *orderDTO.CancelOrder
 }
 
 func (o orderService) UserRefundOrder(ctx context.Context, dto *orderDTO.CancelOrderRequest) error {
-	dao, err := o.orderRepo.FindByUUID(ctx, dto.OrderUUID)
+	dao, err := o.orderRepo.FindByID(ctx, dto.OrderID)
 	if err != nil {
 		return err
 	}
@@ -327,12 +261,12 @@ func (o orderService) UserRefundOrder(ctx context.Context, dto *orderDTO.CancelO
 		return errors.OrderCannotCancel
 	}
 
-	if err := o.orderRepo.UpdateStatus(ctx, dao.Id, order.ORDER_REFUND); err != nil {
+	if err := o.orderRepo.UpdateStatus(ctx, dao.OrderID, order.ORDER_REFUND); err != nil {
 		return err
 	}
 
 	mess := msg.OrderMessage{
-		OrderUUID:     dao.OrderUUID,
+		OrderID:       dao.OrderID,
 		Status:        order.ORDER_REFUND,
 		PaymentMethod: dao.PaymentMethod,
 	}
@@ -345,7 +279,7 @@ func (o orderService) UserRefundOrder(ctx context.Context, dto *orderDTO.CancelO
 }
 
 func (o orderService) AdminCancelOrder(ctx context.Context, dto *orderDTO.CancelOrderRequest) error {
-	dao, err := o.orderRepo.FindByUUID(ctx, dto.OrderUUID)
+	dao, err := o.orderRepo.FindByID(ctx, dto.OrderID)
 	if err != nil {
 		return err
 	}
@@ -354,12 +288,12 @@ func (o orderService) AdminCancelOrder(ctx context.Context, dto *orderDTO.Cancel
 		return errors.ErrNotChange
 	}
 
-	if err := o.orderRepo.UpdateStatus(ctx, dao.Id, order.ORDER_CANCEL); err != nil {
+	if err := o.orderRepo.UpdateStatus(ctx, dao.OrderID, order.ORDER_CANCEL); err != nil {
 		return err
 	}
 
 	mess := msg.OrderMessage{
-		OrderUUID:     dao.OrderUUID,
+		OrderID:       dao.OrderID,
 		Status:        order.ORDER_CANCEL,
 		PaymentMethod: dao.PaymentMethod,
 	}
@@ -373,7 +307,7 @@ func (o orderService) AdminCancelOrder(ctx context.Context, dto *orderDTO.Cancel
 
 func (o orderService) UpdateStatusOrder(ctx context.Context, dto *orderDTO.UpdateOrderStatusRequest) error {
 
-	orderDAO, err := o.orderRepo.FindByUUID(ctx, dto.OrderUUID)
+	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderID)
 	if err != nil {
 		return err
 	}
@@ -392,7 +326,7 @@ func (o orderService) UpdateStatusOrder(ctx context.Context, dto *orderDTO.Updat
 }
 
 func (o orderService) DeliveryUpdateStatusOrder(ctx context.Context, dto delivery.UpdateOrderStatusRequest) (*delivery.UpdateOrderStatusResponse, error) {
-	orderDAO, err := o.orderRepo.FindByUUID(ctx, dto.OrderUUID)
+	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderID)
 	if err != nil {
 		return nil, err
 	}
@@ -407,20 +341,20 @@ func (o orderService) DeliveryUpdateStatusOrder(ctx context.Context, dto deliver
 
 	if dto.Status == order.ORDER_CANCEL || dto.Status == order.ORDER_SHIPPING_FINISH {
 		orderDAO.Status = dto.Status
-		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.Id, dto.Status); err != nil {
+		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, dto.Status); err != nil {
 			return nil, err
 		}
 	} else {
 		return nil, errors.ErrBadRequest
 	}
 
-	msg := msg.OrderMessage{
-		Status:    dto.Status,
-		OrderUUID: orderDAO.OrderUUID,
+	ordMsg := msg.OrderMessage{
+		Status:  dto.Status,
+		OrderID: orderDAO.OrderID,
 	}
 
 	if dto.Status == order.ORDER_CANCEL || dto.Status == order.ORDER_SHIPPING_FINISH {
-		if err := o.publisher.SendOrderCancelMessage(&msg); err != nil {
+		if err := o.publisher.SendOrderCancelMessage(&ordMsg); err != nil {
 			return nil, err
 		}
 	}
@@ -429,7 +363,7 @@ func (o orderService) DeliveryUpdateStatusOrder(ctx context.Context, dto deliver
 }
 
 func (o orderService) UpdateOrderItem(ctx context.Context, dto *store.UpdateOrderItemRequest) (*store.UpdateOrderItemResponse, error) {
-	orderDAO, err := o.orderRepo.FindByUUID(ctx, dto.OrderUUID)
+	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderID)
 	if err != nil {
 		return nil, err
 	}
@@ -465,28 +399,28 @@ func (o orderService) UpdateOrderItem(ctx context.Context, dto *store.UpdateOrde
 	}
 
 	if orderDAO.Status == order.ORDER_CREATED {
-		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.Id, order.ORDER_PENDING); err != nil {
+		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_PENDING); err != nil {
 			return nil, err
 		}
 	}
 
 	if len(orderDAO.OrderItem) == itemPreparedCount {
-		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.Id, order.ORDER_DELIVERY); err != nil {
+		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_DELIVERY); err != nil {
 			return nil, err
 		}
 	}
 
 	resp := store.UpdateOrderItemResponse{
-		OrderUUID: dto.OrderUUID,
-		ItemID:    dto.ItemID,
-		Status:    order.OI_PREPARED,
+		OrderID: dto.OrderID,
+		ItemID:  dto.ItemID,
+		Status:  order.OI_PREPARED,
 	}
 
 	return &resp, nil
 }
 
 func (o orderService) CancelOrderItem(ctx context.Context, dto *store.UpdateOrderItemRequest) (*store.UpdateOrderItemResponse, error) {
-	orderDAO, err := o.orderRepo.FindByUUID(ctx, dto.OrderUUID)
+	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderID)
 	if err != nil {
 		return nil, err
 	}
@@ -513,15 +447,15 @@ func (o orderService) CancelOrderItem(ctx context.Context, dto *store.UpdateOrde
 		return nil, errors.ErrNotFoundRecord
 	}
 
-	if err := o.orderRepo.UpdateStatus(ctx, orderDAO.Id, order.ORDER_CANCEL,
+	if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_CANCEL,
 		"Đơn hàng bị hủy do nhà cung cấp không thể chuẩn bị sản phẩm"); err != nil {
 		return nil, err
 	}
 
 	resp := store.UpdateOrderItemResponse{
-		OrderUUID: dto.OrderUUID,
-		ItemID:    dto.ItemID,
-		Status:    order.ORDER_CANCEL,
+		OrderID: dto.OrderID,
+		ItemID:  dto.ItemID,
+		Status:  order.ORDER_CANCEL,
 	}
 
 	return &resp, nil

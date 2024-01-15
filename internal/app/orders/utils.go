@@ -3,7 +3,6 @@ package orders
 import (
 	"latipe-order-service-v2/internal/domain/dto/order"
 	enitites "latipe-order-service-v2/internal/domain/entities/order"
-	"latipe-order-service-v2/internal/domain/msg"
 	"latipe-order-service-v2/internal/infrastructure/adapter/productserv/dto"
 	dto2 "latipe-order-service-v2/internal/infrastructure/adapter/vouchersev/dto"
 )
@@ -41,12 +40,12 @@ func MappingOrderItemToGetInfo(request *order.CreateOrderRequest) []dto.StoreOrd
 	return storeOrder
 }
 
-func MappingVoucherRequest(dto *order.CreateOrderRequest, voucherCode []string, orderData *msg.OrderMessage) dto2.CheckingVoucherRequest {
+func MappingVoucherRequest(dto *order.CreateOrderRequest, voucherCode []string, orderData *enitites.Order) dto2.CheckingVoucherRequest {
 	voucherReq := dto2.CheckingVoucherRequest{}
 	voucherReq.Vouchers = voucherCode
 	voucherReq.AuthorizationHeader.BearerToken = dto.Header.BearerToken
 	voucherReq.OrderTotalAmount = orderData.SubTotal - orderData.ShippingCost
 	voucherReq.PaymentMethod = orderData.PaymentMethod
-	voucherReq.UserId = orderData.UserRequest.UserId
+	voucherReq.UserId = orderData.UserId
 	return voucherReq
 }

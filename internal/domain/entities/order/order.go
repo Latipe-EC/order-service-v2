@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"strings"
 	"time"
 )
 
@@ -15,8 +16,8 @@ const (
 
 type OrderItem struct {
 	OrderType   string
-	Id          string    `gorm:"not null;type:varchar(10);primary_key" json:"item_id"`
-	OrderID     int       `gorm:"not null;type:bigint" json:"order_id"`
+	Id          string    `gorm:"not null;type:varchar(16);primary_key" json:"item_id"`
+	OrderID     string    `gorm:"not null;type:varchar(16);" json:"order_id"`
 	Order       *Order    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	ProductID   string    `gorm:"not null;type:varchar(255)" json:"product_id"`
 	ProductName string    `gorm:"not null;type:varchar(255)" json:"product_name"`
@@ -36,7 +37,7 @@ type OrderItem struct {
 
 func (o *OrderItem) BeforeCreate(tx *gorm.DB) (err error) {
 	keyGen := uuid.NewString()
-	o.Id = fmt.Sprintf("%v%v", o.Order.OrderUUID[15:], keyGen[30:])
+	o.Id = fmt.Sprintf("%v%v", o.Order.OrderID[15:], keyGen[30:])
 	return nil
 }
 
@@ -47,7 +48,7 @@ func (OrderItem) TableName() string {
 type OrderStatusLog struct {
 	OrderType    string
 	Id           int       `gorm:"not null;autoIncrement;primaryKey;type:bigint" json:"id"`
-	OrderID      int       `gorm:"not null;type:bigint" json:"order_id"`
+	OrderID      string    `gorm:"not null;type:varchar(16)" json:"order_id"`
 	Order        *Order    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Message      string    `gorm:"type:longtext" json:"message_queue"`
 	StatusChange int       `gorm:"type:int" json:"status_change"`
@@ -60,14 +61,13 @@ func (OrderStatusLog) TableName() string {
 }
 
 type Order struct {
-	Id               int               `gorm:"not null;autoIncrement;primaryKey;type:bigint" json:"id"`
-	OrderUUID        string            `gorm:"column:order_uuid;not null;type:varchar(250)" json:"order_uuid"`
+	OrderID          string            `gorm:"column:order_id;not null;primaryKey;type:bigint;type:varchar(16)" json:"order_id"`
 	UserId           string            `gorm:"not null;type:varchar(250)" json:"user_id"`
 	Username         string            `gorm:"not null;type:varchar(250)" json:"email"`
 	Amount           int               `gorm:"not null;type:bigint" json:"amount"`
 	ShippingDiscount int               `gorm:"not null;type:int" json:"shipping_discount"`
 	ItemDiscount     int               `gorm:"not null;type:int" json:"item_discount"`
-	VoucherCode      string            `gorm:"not null;type:varchar(250)" json:"voucher_code"`
+	Vouchers         string            `gorm:"not null;type:varchar(250)" json:"vouchers"`
 	ShippingCost     int               `gorm:"not null;type:int" json:"shipping_cost"`
 	SubTotal         int               `gorm:"not null;type:int" json:"sub_total"`
 	Status           int               `gorm:"not null;type:int" json:"status"`
@@ -80,6 +80,12 @@ type Order struct {
 	Delivery         *DeliveryOrder    `gorm:"constraint:OnUpdate:CASCADE;polymorphic:Order;" json:"delivery"`
 }
 
+func (u *Order) BeforeCreate(tx *gorm.DB) (err error) {
+	keyGen := strings.ReplaceAll(uuid.NewString(), "-", "")[:10]
+	u.OrderID = fmt.Sprintf("ordvn%v%v", u.UserId[:4], keyGen)
+	return nil
+}
+
 func (Order) TableName() string {
 	return "orders"
 }
@@ -87,7 +93,7 @@ func (Order) TableName() string {
 type OrderCommission struct {
 	Id             int `gorm:"not null;autoIncrement;primaryKey;type:bigint" json:"id"`
 	OrderType      string
-	OrderID        int       `gorm:"not null;type:bigint" json:"order_id"`
+	OrderID        string    `gorm:"not null;type:varchar(16)" json:"order_id"`
 	Order          *Order    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	StoreID        string    `gorm:"not null;type:varchar(250)" json:"store_id"`
 	Status         int       `gorm:"not null;int" json:"status"`

@@ -17,10 +17,10 @@ type ValidateItems struct {
 }
 
 type OrderProductResponse struct {
-	Items []ShopOrders `json:"items"`
+	Items []StoreOrder `json:"items"`
 }
 
-type ShopOrders struct {
+type StoreOrder struct {
 	StoreID      string    `json:"store_id"`
 	ProvinceCode string    `json:"province_code"`
 	Items        []Product `json:"items"`

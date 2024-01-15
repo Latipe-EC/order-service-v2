@@ -5,17 +5,16 @@ type BaseHeader struct {
 }
 
 type OrderMessage struct {
-	Header           BaseHeader
 	UserRequest      UserRequest         `json:"user_request,omitempty"`
 	Status           int                 `json:"status"`
-	OrderUUID        string              `json:"order_uuid,omitempty"`
+	OrderID          string              `json:"order_id,omitempty"`
 	Amount           int                 `json:"amount,omitempty" validate:"required"`
 	ShippingCost     int                 `json:"shipping_cost,omitempty"`
 	ShippingDiscount int                 `json:"shipping_discount,omitempty" validate:"required"`
 	ItemDiscount     int                 `json:"item_discount,omitempty" validate:"required"`
 	SubTotal         int                 `json:"sub_total,omitempty" validate:"required"`
 	PaymentMethod    int                 `json:"payment_method,omitempty" validate:"required"`
-	Vouchers         []string            `json:"vouchers,omitempty"`
+	Vouchers         string              `json:"vouchers,omitempty"`
 	Address          OrderAddress        `json:"address,omitempty" validate:"required"`
 	Delivery         Delivery            `json:"delivery,omitempty" validate:"required"`
 	OrderItems       []OrderItemsMessage `json:"order_items,omitempty" validate:"required"`
@@ -44,10 +43,7 @@ type ProductItem struct {
 }
 
 type OrderAddress struct {
-	AddressId       string `json:"address_id"`
-	ShippingName    string `json:"shipping_name" validate:"required"`
-	ShippingPhone   string `json:"shipping_phone" validate:"required"`
-	ShippingAddress string `json:"shipping_address" validate:"required"`
+	AddressId string `json:"address_id"`
 }
 
 type Delivery struct {

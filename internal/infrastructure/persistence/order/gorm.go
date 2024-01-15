@@ -31,22 +31,6 @@ func NewGormRepository(client gorm.Gorm) entity.Repository {
 	}
 }
 
-func (g GormRepository) FindById(ctx context.Context, Id int) (*entity.Order, error) {
-	order := entity.Order{}
-
-	result := g.client.Exec(func(tx *gormF.DB) error {
-		return tx.Model(&entity.Order{}).
-			Preload("OrderItem").
-			Preload("Delivery").
-			First(&order, Id).Error
-	}, ctx)
-	if result != nil {
-		return nil, result
-	}
-
-	return &order, nil
-}
-
 func (g GormRepository) FindByItemId(ctx context.Context, itemId string) (*entity.OrderItem, error) {
 	item := entity.OrderItem{}
 
@@ -61,7 +45,7 @@ func (g GormRepository) FindByItemId(ctx context.Context, itemId string) (*entit
 	return &item, nil
 }
 
-func (g GormRepository) FindByUUID(ctx context.Context, uuid string) (*entity.Order, error) {
+func (g GormRepository) FindByID(ctx context.Context, orderId string) (*entity.Order, error) {
 	order := entity.Order{}
 
 	result := g.client.Exec(func(tx *gormF.DB) error {
@@ -70,7 +54,7 @@ func (g GormRepository) FindByUUID(ctx context.Context, uuid string) (*entity.Or
 			Preload("Delivery").
 			Preload("OrderStatusLog").
 			Preload("OrderCommission").
-			First(&order, "order_uuid = ?", uuid).Error
+			First(&order, "order_id = ?", orderId).Error
 	}, ctx)
 	if result != nil {
 		return nil, result
@@ -131,12 +115,12 @@ func (g GormRepository) FindOrderByStoreID(ctx context.Context, storeId string, 
 	}
 
 	if len(keyword) > 2 {
-		likeState = fmt.Sprintf("orders.order_uuid like %v", fmt.Sprintf("'%%%v%%'", keyword))
+		likeState = fmt.Sprintf("orders.order_id like %v", fmt.Sprintf("'%%%v%%'", keyword))
 	}
 
 	err := g.client.DB().Model(&entity.Order{}).
 		Preload("Delivery").
-		Joins("inner join orders_commission on orders_commission.order_id = orders.id").
+		Joins("inner join orders_commission on orders_commission.dto = orders.order_id").
 		Where("orders_commission.store_id=?", storeId).
 		Where(whereState).
 		Where(likeState).
@@ -154,9 +138,9 @@ func (g GormRepository) SearchOrderByStoreID(ctx context.Context, storeId string
 	var orders []entity.Order
 	err := g.client.DB().Model(&entity.Order{}).
 		Preload("Delivery").
-		Joins("inner join orders_commission on orders_commission.order_id = orders.id").
+		Joins("inner join orders_commission on orders_commission.dto = orders.order_id").
 		Where("orders_commission.store_id=?", storeId).
-		Where("orders.order_uuid like ?", fmt.Sprintf("'%%%v%%'", keyword)).
+		Where("orders.order_id like ?", fmt.Sprintf("'%%%v%%'", keyword)).
 		Limit(query.GetLimit()).Offset(query.GetOffset()).
 		Find(&orders).Error
 
@@ -171,9 +155,9 @@ func (g GormRepository) TotalSearchOrderByStoreID(ctx context.Context, storeId s
 	var count int64
 
 	err := g.client.DB().Select("*").Model(&entity.Order{}).
-		Joins("inner join orders_commission on orders_commission.order_id = orders.id").
+		Joins("inner join orders_commission on orders_commission.dto = orders.order_id").
 		Where("orders_commission.store_id=?", storeId).
-		Where("orders.order_uuid like ?", fmt.Sprintf("'%%%v%%'", keyword)).
+		Where("orders.order_id like ?", fmt.Sprintf("'%%%v%%'", keyword)).
 		Count(&count).Error
 
 	if err != nil {
@@ -192,11 +176,11 @@ func (g GormRepository) FindOrderByDelivery(ctx context.Context, deliID string, 
 	}
 
 	if len(keyword) > 2 {
-		searchState = fmt.Sprintf("orders.order_uuid like %v", fmt.Sprintf("'%%%v%%'", keyword))
+		searchState = fmt.Sprintf("orders.order_id like %v", fmt.Sprintf("'%%%v%%'", keyword))
 	}
 
 	err := g.client.DB().Model(&entity.Order{}).Preload("Delivery").
-		Joins("inner join delivery_orders ON orders.id = delivery_orders.order_id").
+		Joins("inner join delivery_orders ON orders.order_id = delivery_orders.dto").
 		Where("delivery_orders.delivery_id=?", deliID).
 		Order("orders.created_at DESC").
 		Where(searchState).
@@ -212,7 +196,7 @@ func (g GormRepository) FindOrderByDelivery(ctx context.Context, deliID string, 
 
 func (g GormRepository) FindOrderByUserAndProduct(ctx context.Context, userId string, productId string) ([]entity.Order, error) {
 	var orders []entity.Order
-	err := g.client.DB().Raw("select * from orders inner join order_items on orders.id = order_items.order_id "+
+	err := g.client.DB().Raw("select * from orders inner join order_items on orders.order_id = order_items.dto "+
 		"where orders.user_id= ? and order_items.product_id = ?", userId, productId).Scan(&orders).Error
 	if err != nil {
 		return nil, err
@@ -221,10 +205,10 @@ func (g GormRepository) FindOrderByUserAndProduct(ctx context.Context, userId st
 	return orders, err
 }
 
-func (g GormRepository) FindOrderLogByOrderId(ctx context.Context, orderId int) ([]entity.OrderStatusLog, error) {
+func (g GormRepository) FindOrderLogByOrderId(ctx context.Context, orderId string) ([]entity.OrderStatusLog, error) {
 	var orderStatus []entity.OrderStatusLog
 	result := g.client.DB().Model(&entity.OrderStatusLog{}).
-		Where("order_id", orderId).
+		Where("dto", orderId).
 		Order("created_at desc").
 		Find(&orderStatus).Error
 	if result != nil {
@@ -242,7 +226,7 @@ func (g GormRepository) Save(ctx context.Context, dao *entity.Order) error {
 	return result
 }
 
-func (g GormRepository) UpdateStatus(ctx context.Context, orderID int, status int, message ...string) error {
+func (g GormRepository) UpdateStatus(ctx context.Context, orderID string, status int, message ...string) error {
 
 	updateLog := entity.OrderStatusLog{
 		OrderID:      orderID,
@@ -307,11 +291,11 @@ func (g GormRepository) TotalOrdersOfDelivery(ctx context.Context, deliveryId st
 	}
 
 	if len(keyword) > 2 {
-		searchState = fmt.Sprintf("orders.order_uuid like %v", fmt.Sprintf("'%%%v%%'", keyword))
+		searchState = fmt.Sprintf("orders.order_id like %v", fmt.Sprintf("'%%%v%%'", keyword))
 	}
 
 	err := g.client.DB().Select("*").Model(&entity.Order{}).
-		Joins("inner join delivery_orders ON orders.id = delivery_orders.order_id").
+		Joins("inner join delivery_orders ON orders.order_id = delivery_orders.dto").
 		Where(searchState).
 		Where(whereState).
 		Where("delivery_orders.delivery_id=?", deliveryId).
@@ -360,11 +344,11 @@ func (g GormRepository) TotalStoreOrder(ctx context.Context, storeId string, que
 	}
 
 	if len(keyword) > 2 {
-		likeState = fmt.Sprintf("orders.order_uuid like %v", fmt.Sprintf("'%%%v%%'", keyword))
+		likeState = fmt.Sprintf("orders.order_id like %v", fmt.Sprintf("'%%%v%%'", keyword))
 	}
 
 	err := g.client.DB().Select("*").Model(&entity.Order{}).
-		Joins("inner join orders_commission on orders_commission.order_id = orders.id").
+		Joins("inner join orders_commission on orders_commission.dto = orders.order_id").
 		Where("orders_commission.store_id=?", storeId).
 		Where(whereState).
 		Where(likeState).

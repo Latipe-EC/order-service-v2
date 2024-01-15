@@ -7,7 +7,7 @@ type BaseHeader struct {
 }
 
 type OrderResponse struct {
-	OrderUUID        string            `json:"order_uuid"`
+	OrderID          string            `json:"order_id"`
 	Amount           int               `json:"amount"`
 	ShippingDiscount int               `json:"shipping_discount"`
 	ItemDiscount     int               `json:"item_discount"`

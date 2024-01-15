@@ -7,7 +7,7 @@ import (
 
 type GetOrderOfStoreByIDRequest struct {
 	BaseHeader order.BaseHeader
-	OrderUUID  string `json:"order_uuid" params:"id"`
+	OrderID    string `json:"order_id" params:"id"`
 	StoreID    string
 }
 
@@ -16,7 +16,7 @@ type GetOrderOfStoreByIDResponse struct {
 }
 
 type StoreOrderResponse struct {
-	OrderUUID        string             `json:"order_uuid"`
+	OrderID          string             `json:"order_id"`
 	StoreOrderAmount int                `json:"store_order_amount,omitempty"`
 	Status           int                `json:"status"`
 	PaymentMethod    int                `json:"payment_method"`
@@ -28,7 +28,7 @@ type StoreOrderResponse struct {
 }
 
 type DeliveryOrderResponse struct {
-	OrderUUID        string             `json:"order_uuid"`
+	OrderID          string             `json:"order_id"`
 	StoreOrderAmount int                `json:"store_order_amount,omitempty"`
 	Status           int                `json:"status"`
 	PaymentMethod    int                `json:"payment_method"`

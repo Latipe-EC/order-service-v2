@@ -65,7 +65,7 @@ func (o orderService) InternalGetRatingID(ctx context.Context, dto *internalDTO.
 func (o orderService) GetOrderById(ctx context.Context, dto *orderDTO.GetOrderByIDRequest) (*orderDTO.GetOrderResponse, error) {
 	orderResp := orderDTO.OrderResponse{}
 
-	orderDAO, err := o.orderRepo.FindById(ctx, dto.OrderId)
+	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderId)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (o orderService) GetOrderById(ctx context.Context, dto *orderDTO.GetOrderBy
 func (o orderService) GetOrderByUUID(ctx context.Context, dto *orderDTO.GetOrderByUUIDRequest) (*orderDTO.GetOrderResponse, error) {
 	orderResp := orderDTO.OrderResponse{}
 
-	orderDAO, err := o.orderRepo.FindByUUID(ctx, dto.OrderId)
+	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderId)
 	if err != nil {
 		return nil, err
 	}
@@ -260,7 +260,7 @@ func (o orderService) GetOrdersOfDelivery(ctx context.Context, dto *delivery.Get
 func (o orderService) ViewDetailStoreOrder(ctx context.Context, dto *store.GetOrderOfStoreByIDRequest) (*store.GetOrderOfStoreByIDResponse, error) {
 	orderResp := store.GetOrderOfStoreByIDResponse{}
 
-	orderDAO, err := o.orderRepo.FindByUUID(ctx, dto.OrderUUID)
+	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderID)
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +316,7 @@ func (o orderService) CheckProductPurchased(ctx context.Context, dto *orderDTO.C
 	if len(orders) > 0 {
 		var ordersKeys []string
 		for _, i := range orders {
-			ordersKeys = append(ordersKeys, i.OrderUUID)
+			ordersKeys = append(ordersKeys, i.OrderID)
 		}
 		data.IsPurchased = true
 		data.Orders = ordersKeys

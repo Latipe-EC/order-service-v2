@@ -1,9 +1,9 @@
 package order
 
 type CancelOrderRequest struct {
-	Header    BaseHeader
-	OrderUUID string `json:"order_uuid" validate:"required"`
-	UserId    string
+	Header  BaseHeader
+	OrderID string `json:"order_id" validate:"required"`
+	UserId  string
 }
 
 type CancelOrderResponse struct {

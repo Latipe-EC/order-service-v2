@@ -204,7 +204,7 @@ func (q *Query) UserORMConditions() interface{} {
 
 func (q *Query) isUserRequest(fieldName string) bool {
 	if fieldName == "status" || fieldName == "created_at" ||
-		fieldName == "keyword" || fieldName == "order_uuid" || fieldName == "payment_method" {
+		fieldName == "keyword" || fieldName == "order_id" || fieldName == "payment_method" {
 		return true
 	}
 	return false
