@@ -20,15 +20,17 @@ import (
 	"latipe-order-service-v2/internal/infrastructure/adapter/userserv"
 	voucherserv "latipe-order-service-v2/internal/infrastructure/adapter/vouchersev"
 	"latipe-order-service-v2/internal/infrastructure/persistence"
-	producer "latipe-order-service-v2/internal/message_queue"
 	"latipe-order-service-v2/internal/middleware"
+	producer "latipe-order-service-v2/internal/msgqueue"
 	router2 "latipe-order-service-v2/internal/router"
+	"latipe-order-service-v2/internal/worker"
 	"latipe-order-service-v2/pkg/cache"
 )
 
 type Server struct {
-	app *fiber.App
-	cfg *config.Config
+	app       *fiber.App
+	cfg       *config.Config
+	orderSubs *worker.OrderTransactionSubscriber
 }
 
 func New() (*Server, error) {
@@ -48,12 +50,14 @@ func New() (*Server, error) {
 		voucherserv.Set,
 		storeserv.Set,
 		producer.Set,
+		worker.Set,
 	)))
 }
 
 func NewServer(
 	cfg *config.Config,
-	orderRouter router2.OrderRouter) *Server {
+	orderRouter router2.OrderRouter,
+	orderSubs *worker.OrderTransactionSubscriber) *Server {
 
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  cfg.Server.ReadTimeout,
@@ -72,7 +76,7 @@ func NewServer(
 
 	app.Get("", func(ctx *fiber.Ctx) error {
 		s := struct {
-			Message string `json:"message_queue"`
+			Message string `json:"message"`
 			Version string `json:"version"`
 		}{
 			Message: "Order rest-api was developed by TienDat",
@@ -87,8 +91,9 @@ func NewServer(
 	orderRouter.Init(&v2)
 
 	return &Server{
-		cfg: cfg,
-		app: app,
+		cfg:       cfg,
+		app:       app,
+		orderSubs: orderSubs,
 	}
 }
 
@@ -98,4 +103,8 @@ func (serv Server) App() *fiber.App {
 
 func (serv Server) Config() *config.Config {
 	return serv.cfg
+}
+
+func (serv Server) OrderTransactionSubscriber() *worker.OrderTransactionSubscriber {
+	return serv.orderSubs
 }

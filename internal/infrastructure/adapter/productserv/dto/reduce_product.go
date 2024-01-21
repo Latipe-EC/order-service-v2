@@ -13,7 +13,7 @@ type ReduceItem struct {
 }
 
 type ReduceProductResponse struct {
-	Message string `json:"message_queue"`
+	Message string `json:"msgqueue"`
 }
 
 func (ReduceProductRequest) URL() string {

@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"github.com/google/wire"
 	"github.com/spf13/viper"
 	"log"
@@ -78,40 +79,17 @@ type Mongodb struct {
 }
 
 type RabbitMQ struct {
-	OrderCreatedEvent OrderCreatedEvent
-	OrderCancelEvent  OrderCancelEvent
-	PaymentEvent      PaymentEvent
-	Connection        string
-	ConsumerName      string
-	ProducerName      string
+	SagaOrderEvent SagaOrderEvent
+	Connection     string
+	ConsumerName   string
+	ProducerName   string
 }
 
-type OrderCreatedEvent struct {
-	Connection string
-	Exchange   string
-	RoutingKey string
-	Queue      string
-}
-
-type OrderCancelEvent struct {
-	Connection string
-	Exchange   string
-	RoutingKey string
-	Queue      string
-}
-
-type TransactionOrderCreatedEvent struct {
-	Connection string
-	Exchange   string
-	RoutingKey string
-	Queue      string
-}
-
-type PaymentEvent struct {
-	Connection string
-	Exchange   string
-	RoutingKey string
-	Queue      string
+type SagaOrderEvent struct {
+	Exchange          string
+	PublishRoutingKey string
+	ReplyRoutingKey   string
+	Queue             string
 }
 
 type AdapterService struct {
@@ -162,7 +140,7 @@ type PromotionService struct {
 
 // Get config path for local or docker
 func getDefaultConfig() string {
-	return "../config/config"
+	return "/config/config"
 }
 
 // Load config file from given path
@@ -172,6 +150,7 @@ func NewConfig() (*Config, error) {
 	if path == "" {
 		path = getDefaultConfig()
 	}
+	fmt.Printf("config path:%s\n", path)
 
 	v := viper.New()
 

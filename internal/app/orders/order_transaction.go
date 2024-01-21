@@ -8,7 +8,7 @@ import (
 	"latipe-order-service-v2/internal/domain/dto/order/delivery"
 	"latipe-order-service-v2/internal/domain/dto/order/store"
 	"latipe-order-service-v2/internal/domain/entities/order"
-	"latipe-order-service-v2/internal/domain/msg"
+	"latipe-order-service-v2/internal/domain/msgDTO"
 	deliDto "latipe-order-service-v2/internal/infrastructure/adapter/deliveryserv/dto"
 	prodServDTO "latipe-order-service-v2/internal/infrastructure/adapter/productserv/dto"
 	userDTO "latipe-order-service-v2/internal/infrastructure/adapter/userserv/dto"
@@ -230,10 +230,9 @@ func (o orderService) CancelOrder(ctx context.Context, dto *orderDTO.CancelOrder
 		return err
 	}
 
-	mess := msg.OrderMessage{
-		OrderID:       dao.OrderID,
-		Status:        order.ORDER_CANCEL,
-		PaymentMethod: dao.PaymentMethod,
+	mess := msgDTO.OrderStatusMessage{
+		OrderID: dao.OrderID,
+		Status:  order.ORDER_CANCEL,
 	}
 
 	if err := o.publisher.SendOrderCancelMessage(&mess); err != nil {
@@ -265,10 +264,9 @@ func (o orderService) UserRefundOrder(ctx context.Context, dto *orderDTO.CancelO
 		return err
 	}
 
-	mess := msg.OrderMessage{
-		OrderID:       dao.OrderID,
-		Status:        order.ORDER_REFUND,
-		PaymentMethod: dao.PaymentMethod,
+	mess := msgDTO.OrderStatusMessage{
+		OrderID: dao.OrderID,
+		Status:  order.ORDER_REFUND,
 	}
 
 	if err := o.publisher.SendOrderCancelMessage(&mess); err != nil {
@@ -292,10 +290,9 @@ func (o orderService) AdminCancelOrder(ctx context.Context, dto *orderDTO.Cancel
 		return err
 	}
 
-	mess := msg.OrderMessage{
-		OrderID:       dao.OrderID,
-		Status:        order.ORDER_CANCEL,
-		PaymentMethod: dao.PaymentMethod,
+	mess := msgDTO.OrderStatusMessage{
+		OrderID: dao.OrderID,
+		Status:  order.ORDER_CANCEL,
 	}
 
 	if err := o.publisher.SendOrderCancelMessage(&mess); err != nil {
@@ -325,6 +322,54 @@ func (o orderService) UpdateStatusOrder(ctx context.Context, dto *orderDTO.Updat
 	return nil
 }
 
+func (o orderService) UpdateOrderStatusByEvent(ctx context.Context, dto *msgDTO.OrderStatusMessage) error {
+
+	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderID)
+	if err != nil {
+		return err
+	}
+
+	switch dto.Status {
+	case msgDTO.ORDER_EVENT_COMMIT_SUCCESS:
+		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_CREATED,
+			"Đơn hàng được tạo thành công"); err != nil {
+			return err
+		}
+	case msgDTO.ORDER_EVENT_FAIL_BY_PRODUCT:
+		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_FAILED,
+			"Đơn hàng xử lý thất bại do lỗi sản phẩm"); err != nil {
+			return err
+		}
+	case msgDTO.ORDER_EVENT_FAIL_BY_PROMOTION:
+		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_FAILED,
+			"Đơn hàng xử lý thất bại do lỗi khuyến mãi"); err != nil {
+			return err
+		}
+	case msgDTO.ORDER_EVENT_FAIL_BY_DELIVERY:
+		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_FAILED,
+			"Đơn hàng xử lý thất bại do lỗi vận chuyển"); err != nil {
+			return err
+		}
+	case msgDTO.ORDER_EVENT_FAIL_BY_PAYMENT:
+		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_FAILED,
+			"Đơn hàng xử lý thất bại do lỗi thanh toán"); err != nil {
+			return err
+		}
+	case msgDTO.ORDER_EVENT_CANCEL:
+		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_FAILED,
+			"Đơn hàng bị hủy"); err != nil {
+			return err
+		}
+	case msgDTO.ORDER_EVENT_REFUND:
+		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_FAILED,
+			"Đơn hàng hoàn trả"); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (o orderService) DeliveryUpdateStatusOrder(ctx context.Context, dto delivery.UpdateOrderStatusRequest) (*delivery.UpdateOrderStatusResponse, error) {
 	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderID)
 	if err != nil {
@@ -348,7 +393,7 @@ func (o orderService) DeliveryUpdateStatusOrder(ctx context.Context, dto deliver
 		return nil, errors.ErrBadRequest
 	}
 
-	ordMsg := msg.OrderMessage{
+	ordMsg := msgDTO.OrderStatusMessage{
 		Status:  dto.Status,
 		OrderID: orderDAO.OrderID,
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	server "latipe-order-service-v2/internal"
 	"log"
+	"sync"
 )
 
 func main() {
@@ -15,7 +16,19 @@ func main() {
 		log.Fatalf("%s", err)
 	}
 
-	if err := serv.App().Listen(serv.Config().Server.Port); err != nil {
-		fmt.Printf("%s", err)
-	}
+	//subscriber
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go serv.OrderTransactionSubscriber().ListenOrderEventQueue(&wg)
+
+	//api handler
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := serv.App().Listen(serv.Config().Server.Port); err != nil {
+			fmt.Printf("%s", err)
+		}
+	}()
+
+	wg.Wait()
 }

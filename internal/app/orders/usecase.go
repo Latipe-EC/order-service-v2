@@ -7,12 +7,14 @@ import (
 	internalDTO "latipe-order-service-v2/internal/domain/dto/order/internal-service"
 	"latipe-order-service-v2/internal/domain/dto/order/statistic"
 	"latipe-order-service-v2/internal/domain/dto/order/store"
+	"latipe-order-service-v2/internal/domain/msgDTO"
 )
 
 type Usecase interface {
 	//admin
 	GetOrderById(ctx context.Context, dto *orderDTO.GetOrderByIDRequest) (*orderDTO.GetOrderResponse, error)
 	UpdateStatusOrder(ctx context.Context, dto *orderDTO.UpdateOrderStatusRequest) error
+	UpdateOrderStatusByEvent(ctx context.Context, dto *msgDTO.OrderStatusMessage) error
 	GetOrderList(ctx context.Context, dto *orderDTO.GetOrderListRequest) (*orderDTO.GetOrderListResponse, error)
 	CheckProductPurchased(ctx context.Context, dto *orderDTO.CheckUserOrderRequest) (*orderDTO.CheckUserOrderResponse, error)
 	UpdateOrder(ctx context.Context, dto *orderDTO.UpdateOrderRequest) error

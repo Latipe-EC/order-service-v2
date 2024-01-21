@@ -7,8 +7,7 @@ RUN go install github.com/google/wire/cmd/wire@latest
 
 RUN cd internal/ && wire
 RUN cd ../
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /build/main ./cmd/main.go
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/main ./cmd/main.go
-
-EXPOSE 5005
-ENTRYPOINT ["/out/main"]
+EXPOSE 5000
+ENTRYPOINT ["/build/main"]

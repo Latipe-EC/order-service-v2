@@ -6,7 +6,7 @@ type General struct {
 	Status    int         `json:"-"`
 	Code      int         `json:"code"`
 	ErrorCode string      `json:"error_code"`
-	Message   string      `json:"message_queue"`
+	Message   string      `json:"msgqueue"`
 	Data      interface{} `json:"data"`
 }
 

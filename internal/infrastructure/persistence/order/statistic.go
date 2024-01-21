@@ -5,7 +5,7 @@ import (
 	gormF "gorm.io/gorm"
 	"latipe-order-service-v2/internal/domain/dto/custom_entity"
 	entity "latipe-order-service-v2/internal/domain/entities/order"
-	"latipe-order-service-v2/internal/domain/msg"
+	"latipe-order-service-v2/internal/domain/msgDTO"
 )
 
 func (g GormRepository) UserCountingOrder(ctx context.Context, userId string) (int, error) {
@@ -42,7 +42,7 @@ func (g GormRepository) StoreCountingOrder(ctx context.Context, storeId string) 
 func (g GormRepository) DeliveryCountingOrder(ctx context.Context, deliveryId string) (int, error) {
 	var count int64
 	result := g.client.Exec(func(tx *gormF.DB) error {
-		return tx.Model(&msg.Delivery{}).
+		return tx.Model(&msgDTO.Delivery{}).
 			Where("delivery_id=?", deliveryId).
 			Count(&count).Error
 	}, ctx)

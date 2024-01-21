@@ -23,10 +23,11 @@ import (
 	"latipe-order-service-v2/internal/infrastructure/adapter/vouchersev"
 	"latipe-order-service-v2/internal/infrastructure/persistence/db"
 	"latipe-order-service-v2/internal/infrastructure/persistence/order"
-	"latipe-order-service-v2/internal/message_queue"
 	"latipe-order-service-v2/internal/middleware"
 	"latipe-order-service-v2/internal/middleware/auth"
+	"latipe-order-service-v2/internal/msgqueue"
 	"latipe-order-service-v2/internal/router"
+	"latipe-order-service-v2/internal/worker"
 	"latipe-order-service-v2/pkg/cache"
 )
 
@@ -47,7 +48,7 @@ func New() (*Server, error) {
 	userservService := userserv.NewUserServHttpAdapter(configConfig)
 	deliveryservService := deliveryserv.NewDeliServHttpAdapter(configConfig)
 	voucherservService := voucherserv.NewUserServHttpAdapter(configConfig)
-	publisherTransactionMessage := message_queue.NewTransactionProducer(configConfig)
+	publisherTransactionMessage := msgqueue.NewTransactionProducer(configConfig)
 	usecase := orders.NewOrderService(configConfig, repository, service, cacheEngine, userservService, deliveryservService, voucherservService, publisherTransactionMessage)
 	orderApiHandler := order2.NewOrderHandler(usecase)
 	orderStatisticApiHandler := order2.NewStatisticHandler(usecase)
@@ -56,20 +57,23 @@ func New() (*Server, error) {
 	authenticationMiddleware := auth.NewAuthMiddleware(authservService, storeservService, deliveryservService, configConfig)
 	middlewareMiddleware := middleware.NewMiddleware(authenticationMiddleware)
 	orderRouter := router.NewOrderRouter(orderApiHandler, orderStatisticApiHandler, middlewareMiddleware)
-	server := NewServer(configConfig, orderRouter)
+	orderTransactionSubscriber := worker.NewOrderTransactionSubscriber(configConfig, usecase)
+	server := NewServer(configConfig, orderRouter, orderTransactionSubscriber)
 	return server, nil
 }
 
 // server.go:
 
 type Server struct {
-	app *fiber.App
-	cfg *config.Config
+	app       *fiber.App
+	cfg       *config.Config
+	orderSubs *worker.OrderTransactionSubscriber
 }
 
 func NewServer(
 	cfg *config.Config,
-	orderRouter router.OrderRouter) *Server {
+	orderRouter router.OrderRouter,
+	orderSubs *worker.OrderTransactionSubscriber) *Server {
 
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  cfg.Server.ReadTimeout,
@@ -87,7 +91,7 @@ func NewServer(
 
 	app.Get("", func(ctx *fiber.Ctx) error {
 		s := struct {
-			Message string `json:"message_queue"`
+			Message string `json:"message"`
 			Version string `json:"version"`
 		}{
 			Message: "Order rest-api was developed by TienDat",
@@ -102,8 +106,9 @@ func NewServer(
 	orderRouter.Init(&v2)
 
 	return &Server{
-		cfg: cfg,
-		app: app,
+		cfg:       cfg,
+		app:       app,
+		orderSubs: orderSubs,
 	}
 }
 
@@ -113,4 +118,8 @@ func (serv Server) App() *fiber.App {
 
 func (serv Server) Config() *config.Config {
 	return serv.cfg
+}
+
+func (serv Server) OrderTransactionSubscriber() *worker.OrderTransactionSubscriber {
+	return serv.orderSubs
 }
