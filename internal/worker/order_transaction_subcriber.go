@@ -14,23 +14,20 @@ import (
 
 type OrderTransactionSubscriber struct {
 	config    *config.Config
+	conn      *amqp.Connection
 	orderServ orders.Usecase
 }
 
-func NewOrderTransactionSubscriber(cfg *config.Config, orderServ orders.Usecase) *OrderTransactionSubscriber {
+func NewOrderTransactionSubscriber(cfg *config.Config, conn *amqp.Connection, orderServ orders.Usecase) *OrderTransactionSubscriber {
 	return &OrderTransactionSubscriber{
 		config:    cfg,
 		orderServ: orderServ,
+		conn:      conn,
 	}
 }
 func (mq OrderTransactionSubscriber) ListenOrderEventQueue(wg *sync.WaitGroup) {
-	conn, err := amqp.Dial(mq.config.RabbitMQ.Connection)
-	failOnError(err, "Failed to connect to RabbitMQ")
-	log.Info("Comsumer has been connected")
-
-	channel, err := conn.Channel()
+	channel, err := mq.conn.Channel()
 	defer channel.Close()
-	defer conn.Close()
 
 	// define an exchange type "topic"
 	err = channel.ExchangeDeclare(
@@ -71,13 +68,13 @@ func (mq OrderTransactionSubscriber) ListenOrderEventQueue(wg *sync.WaitGroup) {
 
 	// declaring consumer with its properties over channel opened
 	msgs, err := channel.Consume(
-		q.Name,                          // queue
-		mq.config.RabbitMQ.ConsumerName, // consumer
-		true,                            // auto ack
-		false,                           // exclusive
-		false,                           // no local
-		false,                           // no wait
-		nil,                             //args
+		q.Name,                         // queue
+		mq.config.RabbitMQ.NameService, // consumer
+		true,                           // auto ack
+		false,                          // exclusive
+		false,                          // no local
+		false,                          // no wait
+		nil,                            //args
 	)
 	if err != nil {
 		panic(err)
@@ -95,7 +92,6 @@ func (mq OrderTransactionSubscriber) ListenOrderEventQueue(wg *sync.WaitGroup) {
 
 	log.Infof("message queue has started")
 	log.Infof("waiting for messages...")
-
 }
 
 func (mq OrderTransactionSubscriber) orderHandler(msg amqp.Delivery) error {

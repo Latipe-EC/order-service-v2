@@ -29,6 +29,7 @@ import (
 	"latipe-order-service-v2/internal/router"
 	"latipe-order-service-v2/internal/worker"
 	"latipe-order-service-v2/pkg/cache"
+	"latipe-order-service-v2/pkg/rabbitclient"
 )
 
 // Injectors from server.go:
@@ -48,7 +49,8 @@ func New() (*Server, error) {
 	userservService := userserv.NewUserServHttpAdapter(configConfig)
 	deliveryservService := deliveryserv.NewDeliServHttpAdapter(configConfig)
 	voucherservService := voucherserv.NewUserServHttpAdapter(configConfig)
-	publisherTransactionMessage := msgqueue.NewTransactionProducer(configConfig)
+	connection := rabbitclient.NewRabbitClientConnection(configConfig)
+	publisherTransactionMessage := msgqueue.NewTransactionProducer(configConfig, connection)
 	usecase := orders.NewOrderService(configConfig, repository, service, cacheEngine, userservService, deliveryservService, voucherservService, publisherTransactionMessage)
 	orderApiHandler := order2.NewOrderHandler(usecase)
 	orderStatisticApiHandler := order2.NewStatisticHandler(usecase)
@@ -57,7 +59,7 @@ func New() (*Server, error) {
 	authenticationMiddleware := auth.NewAuthMiddleware(authservService, storeservService, deliveryservService, configConfig)
 	middlewareMiddleware := middleware.NewMiddleware(authenticationMiddleware)
 	orderRouter := router.NewOrderRouter(orderApiHandler, orderStatisticApiHandler, middlewareMiddleware)
-	orderTransactionSubscriber := worker.NewOrderTransactionSubscriber(configConfig, usecase)
+	orderTransactionSubscriber := worker.NewOrderTransactionSubscriber(configConfig, connection, usecase)
 	server := NewServer(configConfig, orderRouter, orderTransactionSubscriber)
 	return server, nil
 }

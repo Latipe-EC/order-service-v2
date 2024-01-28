@@ -81,8 +81,7 @@ type Mongodb struct {
 type RabbitMQ struct {
 	SagaOrderEvent SagaOrderEvent
 	Connection     string
-	ConsumerName   string
-	ProducerName   string
+	NameService    string
 }
 
 type SagaOrderEvent struct {

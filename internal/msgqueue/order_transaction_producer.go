@@ -12,13 +12,10 @@ import (
 type PublisherTransactionMessage struct {
 	channel *amqp.Channel
 	cfg     *config.Config
+	conn    *amqp.Connection
 }
 
-func NewTransactionProducer(cfg *config.Config) *PublisherTransactionMessage {
-	conn, err := amqp.Dial(cfg.RabbitMQ.Connection)
-	failOnError(err, "Failed to connect to RabbitMQ")
-	log.Info("producer has been connected")
-
+func NewTransactionProducer(cfg *config.Config, conn *amqp.Connection) *PublisherTransactionMessage {
 	producer := PublisherTransactionMessage{
 		cfg: cfg,
 	}

@@ -25,6 +25,7 @@ import (
 	router2 "latipe-order-service-v2/internal/router"
 	"latipe-order-service-v2/internal/worker"
 	"latipe-order-service-v2/pkg/cache"
+	"latipe-order-service-v2/pkg/rabbitclient"
 )
 
 type Server struct {
@@ -39,6 +40,7 @@ func New() (*Server, error) {
 		config.Set,
 		api.Set,
 		router2.Set,
+		rabbitclient.Set,
 		persistence.Set,
 		userserv.Set,
 		authserv.Set,

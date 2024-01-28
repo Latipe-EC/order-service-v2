@@ -4,12 +4,16 @@ import (
 	"fmt"
 	server "latipe-order-service-v2/internal"
 	"log"
+	"runtime"
 	"sync"
 )
 
 func main() {
 	fmt.Println("Init application")
 	defer log.Fatalf("[Info] Application has closed")
+
+	numCPU := runtime.NumCPU()
+	fmt.Printf("Number of CPU cores: %d\n", numCPU)
 
 	serv, err := server.New()
 	if err != nil {

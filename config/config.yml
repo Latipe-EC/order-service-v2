@@ -13,7 +13,7 @@ Server:
   ExpirationLimitTime: 30s
 DB:
   Mysql:
-    Host: host.docker.internal
+    Host: localhost
     Port: 3306
     UserName: root
     Password: 123123@Dat
@@ -33,18 +33,17 @@ DB:
     MaxPoolSize:
 Cache:
   Redis:
-    Address: host.docker.internal
+    Address: localhost
     Port: 6379
     Password:
     DB: 0
 
 RabbitMQ:
-  Connection: amqp://guest:guest@host.docker.internal:5672/
-  ConsumerName: orders_service_v2
-  ProducerName: orders_service_v2
+  Connection: amqp://guest:guest@localhost:5672/
+  NameService: order_service_v2
 
   SagaOrderEvent:
-    Exchange: order_transaction_exchange
+    Exchange: order_transaction_ex
     RoutingKey: order_created_event
     PublishRoutingKey: order.transaction.commit
     ReplyRoutingKey: order.transaction.reply

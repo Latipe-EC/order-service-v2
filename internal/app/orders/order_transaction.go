@@ -43,6 +43,7 @@ func (o orderService) CreateOrder(ctx context.Context, dto *orderDTO.CreateOrder
 
 	// Handle order group by store
 	var orderIDs []string
+
 	for _, i := range products.Items {
 
 		// Find the store order (user request) that matches the product service request
@@ -85,6 +86,7 @@ func (o orderService) CreateOrder(ctx context.Context, dto *orderDTO.CreateOrder
 	if err := o.publisher.SendOrderCreatedMessage(orders); err != nil {
 		return nil, err
 	}
+
 	data := orderDTO.CreateOrderResponse{
 		UserOrder: orderDTO.UserRequest{
 			UserId:   dto.UserRequest.UserId,
