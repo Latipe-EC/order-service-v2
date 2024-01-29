@@ -15,6 +15,10 @@ import (
 	"latipe-order-service-v2/internal/infrastructure/adapter/productserv"
 	"latipe-order-service-v2/internal/infrastructure/adapter/userserv"
 	voucherserv "latipe-order-service-v2/internal/infrastructure/adapter/vouchersev"
+	deliverygrpc "latipe-order-service-v2/internal/infrastructure/grpc/deliveryServ"
+	productgrpc "latipe-order-service-v2/internal/infrastructure/grpc/productServ"
+	vouchergrpc "latipe-order-service-v2/internal/infrastructure/grpc/promotionServ"
+
 	"latipe-order-service-v2/internal/middleware/auth"
 	publishMsg "latipe-order-service-v2/internal/msgqueue"
 	"latipe-order-service-v2/pkg/cache/redis"
@@ -23,6 +27,7 @@ import (
 )
 
 type orderService struct {
+	cfg         *config.Config
 	orderRepo   order.Repository
 	cacheEngine *redis.CacheEngine
 	productServ productserv.Service
@@ -30,21 +35,30 @@ type orderService struct {
 	deliServ    deliveryserv.Service
 	voucherSer  voucherserv.Service
 	publisher   *publishMsg.PublisherTransactionMessage
-	cfg         *config.Config
+	//grpc client
+	voucherGrpc  vouchergrpc.VoucherServiceGRPCClient
+	productGrpc  productgrpc.ProductServiceGRPCClient
+	deliveryGrpc deliverygrpc.DeliveryServiceGRPCClient
 }
 
 func NewOrderService(cfg *config.Config, orderRepo order.Repository, productServ productserv.Service,
 	cacheEngine *redis.CacheEngine, userServ userserv.Service, deliServ deliveryserv.Service,
-	voucherServ voucherserv.Service, publisher *publishMsg.PublisherTransactionMessage) Usecase {
+	voucherServ voucherserv.Service, publisher *publishMsg.PublisherTransactionMessage,
+	voucherGrpc vouchergrpc.VoucherServiceGRPCClient,
+	productGrpc productgrpc.ProductServiceGRPCClient,
+	deliveryGrpc deliverygrpc.DeliveryServiceGRPCClient) Usecase {
 	return orderService{
-		orderRepo:   orderRepo,
-		cacheEngine: cacheEngine,
-		productServ: productServ,
-		userServ:    userServ,
-		deliServ:    deliServ,
-		voucherSer:  voucherServ,
-		publisher:   publisher,
-		cfg:         cfg,
+		orderRepo:    orderRepo,
+		cacheEngine:  cacheEngine,
+		productServ:  productServ,
+		userServ:     userServ,
+		deliServ:     deliServ,
+		voucherSer:   voucherServ,
+		publisher:    publisher,
+		cfg:          cfg,
+		deliveryGrpc: deliveryGrpc,
+		voucherGrpc:  voucherGrpc,
+		productGrpc:  productGrpc,
 	}
 }
 

@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+option go_package = "productgrpc/";
+
+package protobuf;
+
+service ProductServiceGRPC {
+  rpc CheckInStock(GetPurchaseProductRequest) returns (GetPurchaseItemResponse) {}
+  rpc UpdateQuantity(UpdateProductQuantityRequest) returns (UpdateProductQuantityResponse) {}
+}
+
+message GetPurchaseProductRequest {
+  string storeId = 1;
+  repeated GetPurchaseItemRequest items = 2;
+}
+
+message GetPurchaseItemRequest {
+  string productId = 1;
+  string optionId = 2;
+  int32 quantity = 3;
+}
+
+message ItemResponse {
+  string productId = 1;
+  string name = 2;
+  int32 quantity = 3;
+  string image = 4;
+  float price = 5;
+  float promotionalPrice = 6;
+  string optionId = 7;
+  string nameOption = 8;
+  string storeId = 9;
+  float totalPrice = 10;
+}
+
+message GetPurchaseItemResponse {
+  string storeId = 1;
+  string provinceCode = 2;
+  int32 totalPrice = 3;
+  repeated ItemResponse items = 4;
+}
+
+message UpdateProductQuantityRequest {
+  string storeId = 1;
+  repeated GetPurchaseItemRequest items = 2;
+}
+
+message UpdateProductQuantityResponse {
+  bool isSuccess = 1;
+}

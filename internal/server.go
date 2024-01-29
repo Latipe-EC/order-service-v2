@@ -18,11 +18,12 @@ import (
 	"latipe-order-service-v2/internal/infrastructure/adapter/productserv"
 	"latipe-order-service-v2/internal/infrastructure/adapter/storeserv"
 	"latipe-order-service-v2/internal/infrastructure/adapter/userserv"
-	voucherserv "latipe-order-service-v2/internal/infrastructure/adapter/vouchersev"
+	"latipe-order-service-v2/internal/infrastructure/adapter/vouchersev"
+	grpc_adapt "latipe-order-service-v2/internal/infrastructure/grpc"
 	"latipe-order-service-v2/internal/infrastructure/persistence"
 	"latipe-order-service-v2/internal/middleware"
 	producer "latipe-order-service-v2/internal/msgqueue"
-	router2 "latipe-order-service-v2/internal/router"
+	"latipe-order-service-v2/internal/router"
 	"latipe-order-service-v2/internal/worker"
 	"latipe-order-service-v2/pkg/cache"
 	"latipe-order-service-v2/pkg/rabbitclient"
@@ -39,9 +40,10 @@ func New() (*Server, error) {
 		NewServer,
 		config.Set,
 		api.Set,
-		router2.Set,
+		router.Set,
 		rabbitclient.Set,
 		persistence.Set,
+		grpc_adapt.Set,
 		userserv.Set,
 		authserv.Set,
 		deliveryserv.Set,
@@ -58,7 +60,7 @@ func New() (*Server, error) {
 
 func NewServer(
 	cfg *config.Config,
-	orderRouter router2.OrderRouter,
+	orderRouter router.OrderRouter,
 	orderSubs *worker.OrderTransactionSubscriber) *Server {
 
 	app := fiber.New(fiber.Config{

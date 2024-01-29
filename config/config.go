@@ -16,6 +16,7 @@ type Config struct {
 	Server Server
 	DB     DB
 	Cache  Cache
+	GRPC   GRPC
 	//Adapters Adapters
 	AdapterService AdapterService
 	RabbitMQ       RabbitMQ
@@ -38,7 +39,11 @@ type Server struct {
 	MaxCountRequest     int           // max count of connections
 	ExpirationLimitTime time.Duration //  expiration time of the limit
 }
-
+type GRPC struct {
+	DeliveryConnection string
+	VoucherConnection  string
+	ProductConnection  string
+}
 type DB struct {
 	Mysql Mysql
 }

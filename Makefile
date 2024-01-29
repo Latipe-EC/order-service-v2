@@ -13,6 +13,9 @@ setup:
 wire:
 	cd internal/ && wire
 
+protoc:
+	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative .\internal\infrastructure\grpc\productServ\product_service.proto .\internal\infrastructure\grpc\deliveryServ\delivery_service.proto .\internal\infrastructure\grpc\promotionServ\voucher_grpc.proto .\internal\infrastructure\grpc\userServ\user_service.proto
+
 #linux
 # clean build file
 cleanl:

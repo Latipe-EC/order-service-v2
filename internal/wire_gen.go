@@ -21,6 +21,9 @@ import (
 	"latipe-order-service-v2/internal/infrastructure/adapter/storeserv"
 	"latipe-order-service-v2/internal/infrastructure/adapter/userserv"
 	"latipe-order-service-v2/internal/infrastructure/adapter/vouchersev"
+	"latipe-order-service-v2/internal/infrastructure/grpc/deliveryServ"
+	"latipe-order-service-v2/internal/infrastructure/grpc/productServ"
+	"latipe-order-service-v2/internal/infrastructure/grpc/promotionServ"
 	"latipe-order-service-v2/internal/infrastructure/persistence/db"
 	"latipe-order-service-v2/internal/infrastructure/persistence/order"
 	"latipe-order-service-v2/internal/middleware"
@@ -51,7 +54,10 @@ func New() (*Server, error) {
 	voucherservService := voucherserv.NewUserServHttpAdapter(configConfig)
 	connection := rabbitclient.NewRabbitClientConnection(configConfig)
 	publisherTransactionMessage := msgqueue.NewTransactionProducer(configConfig, connection)
-	usecase := orders.NewOrderService(configConfig, repository, service, cacheEngine, userservService, deliveryservService, voucherservService, publisherTransactionMessage)
+	voucherServiceGRPCClient := vouchergrpc.NewVoucherClientGrpcConnection(configConfig)
+	productServiceClient := productgrpc.NewProductGrpcClientConnection(configConfig)
+	deliveryServiceGRPCClient := deliverygrpc.NewDeliveryClientGrpcConnection(configConfig)
+	usecase := orders.NewOrderService(configConfig, repository, service, cacheEngine, userservService, deliveryservService, voucherservService, publisherTransactionMessage, voucherServiceGRPCClient, productServiceClient, deliveryServiceGRPCClient)
 	orderApiHandler := order2.NewOrderHandler(usecase)
 	orderStatisticApiHandler := order2.NewStatisticHandler(usecase)
 	authservService := authserv.NewAuthServHttpAdapter(configConfig)

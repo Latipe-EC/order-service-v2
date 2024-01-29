@@ -71,3 +71,7 @@ AdapterService:
   PromotionService:
     BaseURL: http://localhost:5010
     InternalKey:
+
+GRPC:
+  VoucherConnection: localhost:6010
+  DeliveryConnection: localhost:6005

@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option go_package="/usergrpc";
+
+service UserServiceGRPC{
+  rpc GetAddressDetail(GetDetailAddressRequest) returns(GetDetailAddressResponse) {}
+}
+
+message GetDetailAddressRequest {
+  string addressId = 1;
+}
+
+message GetDetailAddressResponse {
+  string id = 1;
+  string contactName = 2;
+  string phone = 3;
+  string detailAddress = 4;
+  string zipCode = 5;
+  string cityOrProvinceId = 6;
+  string cityOrProvinceName = 7;
+  string districtId = 8;
+  string districtName = 9;
+  string wardId = 10;
+  string wardName = 11;
+  int32 countryId = 12;
+  string countryName = 13;
+}
