@@ -6,6 +6,7 @@ Tech :
 - Redis
 - RabbitMQ
 - Go-Resty
+- GRPC
 - FiberPrometheus
 
 <hr>
