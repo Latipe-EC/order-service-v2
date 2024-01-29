@@ -14,8 +14,8 @@ Handling the purchase process in e-commerce using microservices architecture. Th
 - Statisticize commission, profit, order count,...
 
 The order creation process involves two phases:
-Phase 1: Processes HTTP POST requests, retrieves data by making gRPC requests to other services, and sends messages (order_status:pending) into transaction service.
-Phase 2: Receives reply messages from transaction service and update order status (failed or success) into the database.
+- Phase 1: Processes HTTP POST requests, retrieves data by making gRPC requests to other services, and sends messages (order_status:pending) into transaction service.
+- Phase 2: Receives reply messages from transaction service and update order status (failed or success) into the database.
 
 <hr>
 <h4>Development by Tran Tien Dat</h4>
