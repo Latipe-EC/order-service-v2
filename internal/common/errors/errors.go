@@ -13,7 +13,7 @@ type Error struct {
 	InternalErrorMessage string `json:"-"`
 	Code                 int    `json:"code"`
 	ErrorCode            string `json:"error_code"`
-	Message              string `json:"msgqueue"`
+	Message              string `json:"message"`
 }
 
 func (e *Error) Error() string {

@@ -3,6 +3,8 @@ package mapper
 import (
 	"encoding/json"
 	"github.com/jinzhu/copier"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"reflect"
 )
 
@@ -14,6 +16,19 @@ func Copy(dest, src interface{}) error {
 // CopyIgnoreEmpty - copy struct to struct ignore zero value
 func CopyIgnoreEmpty(dest, src interface{}) error {
 	return copier.CopyWithOption(dest, src, copier.Option{IgnoreEmpty: true})
+}
+
+// BindingStruct - biding struct to struct use for grpc
+func BindingStructGrpc(src interface{}, desc proto.Message) error {
+	byteSrc, err := json.Marshal(src)
+	if err != nil {
+		return err
+	}
+	// binding to desc
+	if err := protojson.Unmarshal(byteSrc, desc); err != nil {
+		return err
+	}
+	return nil
 }
 
 // BindingStruct - biding struct to struct

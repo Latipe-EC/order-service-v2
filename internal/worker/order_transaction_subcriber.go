@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"latipe-order-service-v2/config"
-	"latipe-order-service-v2/internal/app/orders"
+	"latipe-order-service-v2/internal/app/commands/ordercommand"
 	"latipe-order-service-v2/internal/domain/msgDTO"
 	"sync"
 	"time"
@@ -15,10 +15,10 @@ import (
 type OrderTransactionSubscriber struct {
 	config    *config.Config
 	conn      *amqp.Connection
-	orderServ orders.Usecase
+	orderServ ordercommand.OrderCommandUsecase
 }
 
-func NewOrderTransactionSubscriber(cfg *config.Config, conn *amqp.Connection, orderServ orders.Usecase) *OrderTransactionSubscriber {
+func NewOrderTransactionSubscriber(cfg *config.Config, conn *amqp.Connection, orderServ ordercommand.OrderCommandUsecase) *OrderTransactionSubscriber {
 	return &OrderTransactionSubscriber{
 		config:    cfg,
 		orderServ: orderServ,

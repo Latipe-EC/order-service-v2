@@ -43,6 +43,7 @@ type GRPC struct {
 	DeliveryConnection string
 	VoucherConnection  string
 	ProductConnection  string
+	UserConnection     string
 }
 type DB struct {
 	Mysql Mysql

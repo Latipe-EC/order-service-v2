@@ -3,7 +3,7 @@ package order
 import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
-	"latipe-order-service-v2/internal/app/orders"
+	"latipe-order-service-v2/internal/app/queries/orderstatistic"
 	"latipe-order-service-v2/internal/common/errors"
 	"latipe-order-service-v2/internal/domain/dto/order/statistic"
 	"latipe-order-service-v2/internal/middleware/auth"
@@ -13,12 +13,12 @@ import (
 )
 
 type statisticApiHandler struct {
-	orderUsecase orders.Usecase
+	orderStatisticUsecase orderstatistic.OrderStatisticUsecase
 }
 
-func NewStatisticHandler(orderUsecase orders.Usecase) OrderStatisticApiHandler {
+func NewStatisticHandler(orderStatisticUsecase orderstatistic.OrderStatisticUsecase) OrderStatisticApiHandler {
 	return statisticApiHandler{
-		orderUsecase: orderUsecase,
+		orderStatisticUsecase: orderStatisticUsecase,
 	}
 }
 
@@ -39,7 +39,7 @@ func (s statisticApiHandler) AdminGetTotalOrderInSystemInDay(ctx *fiber.Ctx) err
 		req.Date = InitDateValue()
 	}
 
-	result, err := s.orderUsecase.AdminGetTotalOrderInSystemInDay(context, &req)
+	result, err := s.orderStatisticUsecase.AdminGetTotalOrderInSystemInDay(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):
@@ -70,7 +70,7 @@ func (s statisticApiHandler) AdminGetTotalOrderInSystemInMonth(ctx *fiber.Ctx) e
 		req.Date = InitDateValue()
 	}
 
-	result, err := s.orderUsecase.AdminGetTotalOrderInSystemInMonth(context, &req)
+	result, err := s.orderStatisticUsecase.AdminGetTotalOrderInSystemInMonth(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):
@@ -97,7 +97,7 @@ func (s statisticApiHandler) AdminGetTotalOrderInSystemInYear(ctx *fiber.Ctx) er
 		return errors.ErrBadRequest
 	}
 
-	result, err := s.orderUsecase.AdminGetTotalOrderInSystemInYear(context, &req)
+	result, err := s.orderStatisticUsecase.AdminGetTotalOrderInSystemInYear(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):
@@ -128,7 +128,7 @@ func (s statisticApiHandler) AdminGetTotalCommissionOrderInYear(ctx *fiber.Ctx) 
 		req.Date = InitDateValue()
 	}
 
-	result, err := s.orderUsecase.AdminGetTotalCommissionOrderInYear(context, &req)
+	result, err := s.orderStatisticUsecase.AdminGetTotalCommissionOrderInYear(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):
@@ -159,7 +159,7 @@ func (s statisticApiHandler) AdminListOfProductSoldOnMonth(ctx *fiber.Ctx) error
 		req.Date = InitDateValue()
 	}
 
-	result, err := s.orderUsecase.AdminListOfProductSoldOnMonth(context, &req)
+	result, err := s.orderStatisticUsecase.AdminListOfProductSoldOnMonth(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):
@@ -193,7 +193,7 @@ func (s statisticApiHandler) GetTotalOrderInMonthOfStore(ctx *fiber.Ctx) error {
 	storeID := fmt.Sprintf("%v", ctx.Locals(auth.STORE_ID))
 	req.StoreId = storeID
 
-	result, err := s.orderUsecase.GetTotalOrderInMonthOfStore(context, &req)
+	result, err := s.orderStatisticUsecase.GetTotalOrderInMonthOfStore(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):
@@ -223,7 +223,7 @@ func (s statisticApiHandler) GetTotalOrderInYearOfStore(ctx *fiber.Ctx) error {
 	storeID := fmt.Sprintf("%v", ctx.Locals(auth.STORE_ID))
 	req.StoreID = storeID
 
-	result, err := s.orderUsecase.GetTotalOrderInYearOfStore(context, &req)
+	result, err := s.orderStatisticUsecase.GetTotalOrderInYearOfStore(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):
@@ -257,7 +257,7 @@ func (s statisticApiHandler) GetTotalStoreCommissionInYear(ctx *fiber.Ctx) error
 	storeID := fmt.Sprintf("%v", ctx.Locals(auth.STORE_ID))
 	req.StoreId = storeID
 
-	result, err := s.orderUsecase.GetTotalStoreCommissionInYear(context, &req)
+	result, err := s.orderStatisticUsecase.GetTotalStoreCommissionInYear(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):
@@ -291,7 +291,7 @@ func (s statisticApiHandler) ListOfProductSoldOnMonthStore(ctx *fiber.Ctx) error
 	storeID := fmt.Sprintf("%v", ctx.Locals(auth.STORE_ID))
 	req.StoreId = storeID
 
-	result, err := s.orderUsecase.ListOfProductSoldOnMonthStore(context, &req)
+	result, err := s.orderStatisticUsecase.ListOfProductSoldOnMonthStore(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):

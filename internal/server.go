@@ -83,7 +83,7 @@ func NewServer(
 			Message string `json:"message"`
 			Version string `json:"version"`
 		}{
-			Message: "Order rest-api was developed by TienDat",
+			Message: "the orders service was developed by tdat.it",
 			Version: "v2.0.0",
 		}
 		return ctx.JSON(s)

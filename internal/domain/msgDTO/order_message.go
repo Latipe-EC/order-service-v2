@@ -19,6 +19,7 @@ type OrderMessage struct {
 	Address          OrderAddress        `json:"address,omitempty" validate:"required"`
 	Delivery         Delivery            `json:"delivery,omitempty" validate:"required"`
 	OrderItems       []OrderItemsMessage `json:"order_items,omitempty" validate:"required"`
+	CartIds          []string            `json:"cart_ids"`
 }
 
 type UserRequest struct {

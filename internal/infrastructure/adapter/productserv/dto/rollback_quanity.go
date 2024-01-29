@@ -13,7 +13,7 @@ type RollBackItem struct {
 }
 
 type RollbackQuantityResponse struct {
-	Message string `json:"msgqueue"`
+	Message string `json:"message"`
 }
 
 func (RollbackQuantityRequest) URL() string {

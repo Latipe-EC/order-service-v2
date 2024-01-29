@@ -13,17 +13,17 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"latipe-order-service-v2/config"
 	order2 "latipe-order-service-v2/internal/api/order"
-	"latipe-order-service-v2/internal/app/orders"
+	"latipe-order-service-v2/internal/app/commands/ordercommand"
+	"latipe-order-service-v2/internal/app/queries/orderquery"
+	"latipe-order-service-v2/internal/app/queries/orderstatistic"
 	"latipe-order-service-v2/internal/common/errors"
 	"latipe-order-service-v2/internal/infrastructure/adapter/authserv"
 	"latipe-order-service-v2/internal/infrastructure/adapter/deliveryserv"
-	"latipe-order-service-v2/internal/infrastructure/adapter/productserv"
 	"latipe-order-service-v2/internal/infrastructure/adapter/storeserv"
-	"latipe-order-service-v2/internal/infrastructure/adapter/userserv"
-	"latipe-order-service-v2/internal/infrastructure/adapter/vouchersev"
 	"latipe-order-service-v2/internal/infrastructure/grpc/deliveryServ"
 	"latipe-order-service-v2/internal/infrastructure/grpc/productServ"
 	"latipe-order-service-v2/internal/infrastructure/grpc/promotionServ"
+	"latipe-order-service-v2/internal/infrastructure/grpc/userServ"
 	"latipe-order-service-v2/internal/infrastructure/persistence/db"
 	"latipe-order-service-v2/internal/infrastructure/persistence/order"
 	"latipe-order-service-v2/internal/middleware"
@@ -44,28 +44,28 @@ func New() (*Server, error) {
 	}
 	gorm := db.NewMySQLConnection(configConfig)
 	repository := order.NewGormRepository(gorm)
-	service := productserv.NewProductServAdapter(configConfig)
 	cacheEngine, err := cache.NewCacheEngine(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	userservService := userserv.NewUserServHttpAdapter(configConfig)
-	deliveryservService := deliveryserv.NewDeliServHttpAdapter(configConfig)
-	voucherservService := voucherserv.NewUserServHttpAdapter(configConfig)
 	connection := rabbitclient.NewRabbitClientConnection(configConfig)
 	publisherTransactionMessage := msgqueue.NewTransactionProducer(configConfig, connection)
 	voucherServiceGRPCClient := vouchergrpc.NewVoucherClientGrpcConnection(configConfig)
-	productServiceClient := productgrpc.NewProductGrpcClientConnection(configConfig)
+	productServiceGRPCClient := productgrpc.NewProductGrpcClientConnection(configConfig)
 	deliveryServiceGRPCClient := deliverygrpc.NewDeliveryClientGrpcConnection(configConfig)
-	usecase := orders.NewOrderService(configConfig, repository, service, cacheEngine, userservService, deliveryservService, voucherservService, publisherTransactionMessage, voucherServiceGRPCClient, productServiceClient, deliveryServiceGRPCClient)
-	orderApiHandler := order2.NewOrderHandler(usecase)
-	orderStatisticApiHandler := order2.NewStatisticHandler(usecase)
-	authservService := authserv.NewAuthServHttpAdapter(configConfig)
+	userServiceGRPCClient := usergrpc.NewUserServiceClientConnection(configConfig)
+	orderCommandUsecase := ordercommand.NewOrderCommmandService(configConfig, repository, cacheEngine, publisherTransactionMessage, voucherServiceGRPCClient, productServiceGRPCClient, deliveryServiceGRPCClient, userServiceGRPCClient)
+	orderQueryUsecase := orderquery.NewOrderQueryService(repository)
+	orderApiHandler := order2.NewOrderHandler(orderCommandUsecase, orderQueryUsecase)
+	orderStatisticUsecase := orderstatistic.NewOrderStatisicService(repository)
+	orderStatisticApiHandler := order2.NewStatisticHandler(orderStatisticUsecase)
+	service := authserv.NewAuthServHttpAdapter(configConfig)
 	storeservService := storeserv.NewStoreServiceAdapter(configConfig)
-	authenticationMiddleware := auth.NewAuthMiddleware(authservService, storeservService, deliveryservService, configConfig)
+	deliveryservService := deliveryserv.NewDeliServHttpAdapter(configConfig)
+	authenticationMiddleware := auth.NewAuthMiddleware(service, storeservService, deliveryservService, configConfig)
 	middlewareMiddleware := middleware.NewMiddleware(authenticationMiddleware)
 	orderRouter := router.NewOrderRouter(orderApiHandler, orderStatisticApiHandler, middlewareMiddleware)
-	orderTransactionSubscriber := worker.NewOrderTransactionSubscriber(configConfig, connection, usecase)
+	orderTransactionSubscriber := worker.NewOrderTransactionSubscriber(configConfig, connection, orderCommandUsecase)
 	server := NewServer(configConfig, orderRouter, orderTransactionSubscriber)
 	return server, nil
 }

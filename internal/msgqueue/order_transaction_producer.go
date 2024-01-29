@@ -5,7 +5,7 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"latipe-order-service-v2/config"
-	"latipe-order-service-v2/internal/domain/entities/order"
+	"latipe-order-service-v2/internal/domain/msgDTO"
 	"time"
 )
 
@@ -30,31 +30,32 @@ func NewTransactionProducer(cfg *config.Config, conn *amqp.Connection) *Publishe
 	return &producer
 }
 
-func (pub *PublisherTransactionMessage) SendOrderCreatedMessage(data []*order.Order) error {
+func (pub *PublisherTransactionMessage) SendOrderCreatedMessage(orderMsg *msgDTO.OrderMessage) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	for _, i := range data {
-		message := MappingDataToMessage(i)
-		body, err := ParseOrderToByte(&message)
-		if err != nil {
-			return err
-		}
+	body, err := ParseOrderToByte(&orderMsg)
+	if err != nil {
+		return err
+	}
 
-		log.Infof("Send msgqueue to queue %v - %v",
-			pub.cfg.RabbitMQ.SagaOrderEvent.Exchange,
-			pub.cfg.RabbitMQ.SagaOrderEvent.PublishRoutingKey)
+	log.Infof("Send message to queue %v - %v",
+		pub.cfg.RabbitMQ.SagaOrderEvent.Exchange,
+		pub.cfg.RabbitMQ.SagaOrderEvent.PublishRoutingKey)
 
-		err = pub.channel.PublishWithContext(ctx,
-			pub.cfg.RabbitMQ.SagaOrderEvent.Exchange,          // exchange
-			pub.cfg.RabbitMQ.SagaOrderEvent.PublishRoutingKey, // routing key
-			false, // mandatory
-			false, // immediate
-			amqp.Publishing{
-				ContentType: "application/json",
-				Body:        body,
-			})
-		failOnError(err, "Failed to publish a msgqueue")
+	err = pub.channel.PublishWithContext(ctx,
+		pub.cfg.RabbitMQ.SagaOrderEvent.Exchange,          // exchange
+		pub.cfg.RabbitMQ.SagaOrderEvent.PublishRoutingKey, // routing key
+		false, // mandatory
+		false, // immediate
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        body,
+		})
+
+	if err != nil {
+		log.Errorf("Publishing message was failed cause:%v", err)
+		return err
 	}
 
 	return nil
@@ -69,7 +70,7 @@ func (pub *PublisherTransactionMessage) SendOrderCancelMessage(request interface
 		return err
 	}
 
-	log.Infof("Send msgqueue to queue %v - %v",
+	log.Infof("Send message to queue %v - %v",
 		pub.cfg.RabbitMQ.SagaOrderEvent.Exchange,
 		pub.cfg.RabbitMQ.SagaOrderEvent.PublishRoutingKey)
 
@@ -82,7 +83,7 @@ func (pub *PublisherTransactionMessage) SendOrderCancelMessage(request interface
 			ContentType: "application/json",
 			Body:        body,
 		})
-	failOnError(err, "Failed to publish a msgqueue")
+	failOnError(err, "Failed to publish a message")
 
 	return nil
 }

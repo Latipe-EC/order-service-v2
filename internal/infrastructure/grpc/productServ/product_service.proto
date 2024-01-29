@@ -36,7 +36,7 @@ message ItemResponse {
 message GetPurchaseItemResponse {
   string storeId = 1;
   string provinceCode = 2;
-  int32 totalPrice = 3;
+  int64 totalPrice = 3;
   repeated ItemResponse items = 4;
 }
 

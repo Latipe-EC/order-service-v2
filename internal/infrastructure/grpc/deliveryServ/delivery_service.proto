@@ -16,5 +16,5 @@ message GetShippingCostResponse {
   string receive_date = 1;
   string delivery_id = 2;
   string delivery_name = 3;
-  int32 cost = 4;
+  int64 cost = 4;
 }

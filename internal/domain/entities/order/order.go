@@ -50,7 +50,7 @@ type OrderStatusLog struct {
 	Id           int       `gorm:"not null;autoIncrement;primaryKey;type:bigint" json:"id"`
 	OrderID      string    `gorm:"not null;type:varchar(16)" json:"order_id"`
 	Order        *Order    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Message      string    `gorm:"type:longtext" json:"msgqueue"`
+	Message      string    `gorm:"type:longtext" json:"message"`
 	StatusChange int       `gorm:"type:int" json:"status_change"`
 	UpdatedAt    time.Time `gorm:"autoUpdateTime;type:datetime(6)" json:"updated_at"`
 	CreatedAt    time.Time `gorm:"autoCreateTime;type:datetime(6)" json:"created_at"`

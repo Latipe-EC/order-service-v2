@@ -43,7 +43,7 @@ func (o orderRouter) Init(root *fiber.Router) {
 		{
 			userRouter.Get("", o.middleware.Authentication.RequiredAuthentication(), o.orderHandler.GetMyOrder)
 			userRouter.Get("/total/count", o.middleware.Authentication.RequiredAuthentication(), o.orderHandler.UserCountingOrder)
-			userRouter.Get("/:id", o.middleware.Authentication.RequiredAuthentication(), o.orderHandler.UserGetOrderByUUID)
+			userRouter.Get("/:id", o.middleware.Authentication.RequiredAuthentication(), o.orderHandler.UserGetOrderByID)
 			userRouter.Post("", o.middleware.Authentication.RequiredRole([]string{auth.ROLE_USER}), o.orderHandler.CreateOrder)
 			userRouter.Patch("/cancel", o.middleware.Authentication.RequiredAuthentication(), o.orderHandler.UserCancelOrder)
 			userRouter.Patch("/refund", o.middleware.Authentication.RequiredAuthentication(), o.orderHandler.UserCancelOrder)
@@ -72,7 +72,7 @@ func (o orderRouter) Init(root *fiber.Router) {
 		//internal
 		internalRouter := orderRouter.Group("/internal")
 		{
-			internalRouter.Get("/rating/:id", o.middleware.Authentication.RequiredInternalService(), o.orderHandler.InternalGetOrderByUUID)
+			internalRouter.Get("/rating/:id", o.middleware.Authentication.RequiredInternalService(), o.orderHandler.InternalGetOrderByOrderID)
 		}
 
 		statisticRouter := orderRouter.Group("/statistic")

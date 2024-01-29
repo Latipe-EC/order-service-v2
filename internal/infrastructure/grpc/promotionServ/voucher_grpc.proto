@@ -23,7 +23,7 @@ message VoucherRespDetail {
   string detail = 5;
   string owner_voucher = 6;
   double discount_percent = 7;
-  int32 discount_value = 8;
+  int64 discount_value = 8;
   VoucherReqResp voucher_require = 9;
   google.protobuf.Timestamp created_at = 10;
   google.protobuf.Timestamp updated_at = 11;
@@ -50,7 +50,7 @@ message ApplyVoucherResponse {
 
 message CheckingVoucherRequest {
   repeated string vouchers = 1;
-  int32 order_total_amount = 2;
+  int64 order_total_amount = 2;
   int32 payment_method = 3;
   string user_id = 4;
 }

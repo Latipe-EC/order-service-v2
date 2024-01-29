@@ -7,13 +7,6 @@ type GetOrderByIDRequest struct {
 	OrderId    string `json:"order_id" params:"id"`
 }
 
-type GetOrderByUUIDRequest struct {
-	BaseHeader BaseHeader
-	Role       string
-	OwnerId    string
-	OrderId    string `json:"order_id" params:"id"`
-}
-
 type GetOrderResponse struct {
 	Order OrderResponse `json:"order"`
 }

@@ -7,7 +7,6 @@ type CreateOrderRequest struct {
 	UserRequest UserRequest
 	Address     OrderAddress `json:"address" validate:"required"`
 	StoreOrders []StoreOrder `json:"store_orders"`
-	CartItems   []string     `json:"cart_items"`
 }
 
 type StoreOrder struct {
@@ -16,6 +15,7 @@ type StoreOrder struct {
 	VoucherCode   []string     `json:"vouchers"`
 	Delivery      Delivery     `json:"delivery" validate:"required"`
 	Items         []OrderItems `json:"items" validate:"required"`
+	CartIds       []string     `json:"cart_ids"`
 }
 
 type CreateOrderResponse struct {

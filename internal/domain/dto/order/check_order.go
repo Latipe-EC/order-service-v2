@@ -8,5 +8,5 @@ type CheckUserOrderRequest struct {
 
 type CheckUserOrderResponse struct {
 	IsPurchased bool     `json:"is_purchased"`
-	Orders      []string `json:"orders,omitempty"`
+	Orders      []string `json:"ordercommand,omitempty"`
 }

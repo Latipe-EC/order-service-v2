@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
-	"latipe-order-service-v2/internal/app/orders"
+	"latipe-order-service-v2/internal/app/commands/ordercommand"
+	"latipe-order-service-v2/internal/app/queries/orderquery"
 	"latipe-order-service-v2/internal/common/errors"
 	dto "latipe-order-service-v2/internal/domain/dto/order"
 	"latipe-order-service-v2/internal/domain/dto/order/delivery"
@@ -18,12 +19,14 @@ import (
 )
 
 type orderApiHandler struct {
-	orderUsecase orders.Usecase
+	orderCommandServ ordercommand.OrderCommandUsecase
+	orderQueryServ   orderquery.OrderQueryUsecase
 }
 
-func NewOrderHandler(orderUsecase orders.Usecase) OrderApiHandler {
+func NewOrderHandler(orderCommandServ ordercommand.OrderCommandUsecase, orderQueryServ orderquery.OrderQueryUsecase) OrderApiHandler {
 	return orderApiHandler{
-		orderUsecase: orderUsecase,
+		orderCommandServ: orderCommandServ,
+		orderQueryServ:   orderQueryServ,
 	}
 }
 
@@ -59,7 +62,7 @@ func (o orderApiHandler) CreateOrder(ctx *fiber.Ctx) error {
 	bodyReq.UserRequest.UserId = userId
 	bodyReq.UserRequest.Username = username
 
-	dataResp, err := o.orderUsecase.CreateOrder(context, &bodyReq)
+	dataResp, err := o.orderCommandServ.CreateOrder(context, &bodyReq)
 	if err != nil {
 		return err
 	}
@@ -87,7 +90,7 @@ func (o orderApiHandler) GetMyOrder(ctx *fiber.Ctx) error {
 
 	req.UserId = userId
 
-	result, err := o.orderUsecase.GetOrderByUserId(context, req)
+	result, err := o.orderQueryServ.GetOrderByUserId(context, req)
 	if err != nil {
 		return errors.ErrInternalServer
 	}
@@ -114,7 +117,7 @@ func (o orderApiHandler) UserCancelOrder(ctx *fiber.Ctx) error {
 
 	req.UserId = userId
 
-	err := o.orderUsecase.CancelOrder(context, req)
+	err := o.orderCommandServ.CancelOrder(context, req)
 	if err != nil {
 		return err
 	}
@@ -139,7 +142,7 @@ func (o orderApiHandler) UserRefundOrder(ctx *fiber.Ctx) error {
 
 	req.UserId = userId
 
-	err := o.orderUsecase.CancelOrder(context, req)
+	err := o.orderCommandServ.CancelOrder(context, req)
 	if err != nil {
 		return err
 	}
@@ -164,7 +167,7 @@ func (o orderApiHandler) AdminCancelOrder(ctx *fiber.Ctx) error {
 
 	req.UserId = userId
 
-	err := o.orderUsecase.AdminCancelOrder(context, req)
+	err := o.orderCommandServ.AdminCancelOrder(context, req)
 	if err != nil {
 		return err
 	}
@@ -195,7 +198,7 @@ func (o orderApiHandler) UpdateOrderStatus(ctx *fiber.Ctx) error {
 	req.UserId = userId
 	req.Role = role
 
-	err := o.orderUsecase.UpdateStatusOrder(context, req)
+	err := o.orderCommandServ.UpdateStatusOrder(context, req)
 	if err != nil {
 		return errors.ErrInternalServer
 	}
@@ -214,7 +217,7 @@ func (o orderApiHandler) ListOfOrder(ctx *fiber.Ctx) error {
 	req := new(dto.GetOrderListRequest)
 	req.Query = query
 
-	result, err := o.orderUsecase.GetOrderList(context, req)
+	result, err := o.orderQueryServ.GetOrderList(context, req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):
@@ -230,13 +233,13 @@ func (o orderApiHandler) ListOfOrder(ctx *fiber.Ctx) error {
 
 func (o orderApiHandler) GetOrderByUUID(ctx *fiber.Ctx) error {
 	context := ctx.Context()
-	req := new(dto.GetOrderByUUIDRequest)
+	req := new(dto.GetOrderByIDRequest)
 
 	if err := ctx.ParamsParser(req); err != nil {
 		return errors.ErrInternalServer
 	}
 
-	result, err := o.orderUsecase.GetOrderByUUID(context, req)
+	result, err := o.orderQueryServ.GetOrderByID(context, req)
 	if err != nil {
 		switch {
 		case errors.Is(err, gorm.ErrRecordNotFound):
@@ -250,9 +253,9 @@ func (o orderApiHandler) GetOrderByUUID(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
-func (o orderApiHandler) UserGetOrderByUUID(ctx *fiber.Ctx) error {
+func (o orderApiHandler) UserGetOrderByID(ctx *fiber.Ctx) error {
 	context := ctx.Context()
-	req := new(dto.GetOrderByUUIDRequest)
+	req := new(dto.GetOrderByIDRequest)
 
 	if err := ctx.ParamsParser(req); err != nil {
 		return errors.ErrInternalServer
@@ -271,7 +274,7 @@ func (o orderApiHandler) UserGetOrderByUUID(ctx *fiber.Ctx) error {
 	req.OwnerId = userId
 	req.Role = role
 
-	result, err := o.orderUsecase.GetOrderByUUID(context, req)
+	result, err := o.orderQueryServ.GetOrderByID(context, req)
 	if err != nil {
 		switch {
 		case errors.Is(err, gorm.ErrRecordNotFound):
@@ -287,7 +290,7 @@ func (o orderApiHandler) UserGetOrderByUUID(ctx *fiber.Ctx) error {
 
 func (o orderApiHandler) DeliveryGetOrderByUUID(ctx *fiber.Ctx) error {
 	context := ctx.Context()
-	req := new(dto.GetOrderByUUIDRequest)
+	req := new(dto.GetOrderByIDRequest)
 
 	if err := ctx.ParamsParser(req); err != nil {
 		return errors.ErrInternalServer
@@ -306,7 +309,7 @@ func (o orderApiHandler) DeliveryGetOrderByUUID(ctx *fiber.Ctx) error {
 	req.OwnerId = deliID
 	req.Role = role
 
-	result, err := o.orderUsecase.GetOrderByUUID(context, req)
+	result, err := o.orderQueryServ.GetOrderById(context, req)
 	if err != nil {
 		switch {
 		case errors.Is(err, gorm.ErrRecordNotFound):
@@ -320,7 +323,7 @@ func (o orderApiHandler) DeliveryGetOrderByUUID(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
-func (o orderApiHandler) InternalGetOrderByUUID(ctx *fiber.Ctx) error {
+func (o orderApiHandler) InternalGetOrderByOrderID(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 	req := internalDTO.GetOrderRatingItemRequest{}
 
@@ -328,7 +331,7 @@ func (o orderApiHandler) InternalGetOrderByUUID(ctx *fiber.Ctx) error {
 		return errors.ErrInternalServer
 	}
 
-	result, err := o.orderUsecase.InternalGetRatingID(context, &req)
+	result, err := o.orderQueryServ.InternalGetRatingID(context, &req)
 	if err != nil {
 		switch {
 		case errors.Is(err, gorm.ErrRecordNotFound):
@@ -360,7 +363,7 @@ func (o orderApiHandler) GetMyStoreOrder(ctx *fiber.Ctx) error {
 	storeID := fmt.Sprintf("%v", ctx.Locals(auth.STORE_ID))
 	req.StoreID = storeID
 
-	result, err := o.orderUsecase.GetOrdersOfStore(context, &req)
+	result, err := o.orderQueryServ.GetOrdersOfStore(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):
@@ -386,7 +389,7 @@ func (o orderApiHandler) GetStoreOrderDetail(ctx *fiber.Ctx) error {
 	storeID := fmt.Sprintf("%v", ctx.Locals(auth.STORE_ID))
 	req.StoreID = storeID
 
-	result, err := o.orderUsecase.ViewDetailStoreOrder(context, &req)
+	result, err := o.orderQueryServ.ViewDetailStoreOrder(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):
@@ -422,7 +425,7 @@ func (o orderApiHandler) UpdateOrderItemStatus(ctx *fiber.Ctx) error {
 
 	req.StoreId = storeId
 
-	resp, err := o.orderUsecase.UpdateOrderItem(context, &req)
+	resp, err := o.orderCommandServ.UpdateOrderItem(context, &req)
 	if err != nil {
 		return err
 	}
@@ -453,7 +456,7 @@ func (o orderApiHandler) CancelOrderItemStatus(ctx *fiber.Ctx) error {
 
 	req.StoreId = storeId
 
-	resp, err := o.orderUsecase.CancelOrderItem(context, &req)
+	resp, err := o.orderCommandServ.CancelOrderItem(context, &req)
 	if err != nil {
 		return err
 	}
@@ -488,7 +491,7 @@ func (o orderApiHandler) UpdateStatusByDelivery(ctx *fiber.Ctx) error {
 		return errors.ErrBadRequest
 	}
 
-	resp, err := o.orderUsecase.DeliveryUpdateStatusOrder(context, req)
+	resp, err := o.orderCommandServ.DeliveryUpdateStatusOrder(context, req)
 	if err != nil {
 		return err
 	}
@@ -517,7 +520,7 @@ func (o orderApiHandler) GetOrdersByDelivery(ctx *fiber.Ctx) error {
 	deliId := fmt.Sprintf("%v", ctx.Locals(auth.DELIVERY_ID))
 	req.DeliveryID = deliId
 
-	result, err := o.orderUsecase.GetOrdersOfDelivery(context, &req)
+	result, err := o.orderQueryServ.GetOrdersOfDelivery(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):
@@ -553,7 +556,7 @@ func (o orderApiHandler) SearchOrderIdByKeyword(ctx *fiber.Ctx) error {
 	storeID := fmt.Sprintf("%v", ctx.Locals(auth.STORE_ID))
 	req.StoreID = storeID
 
-	result, err := o.orderUsecase.SearchStoreOrderId(context, &req)
+	result, err := o.orderQueryServ.SearchStoreOrderId(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):
@@ -575,7 +578,7 @@ func (o orderApiHandler) AdminCountingOrder(ctx *fiber.Ctx) error {
 		return errors.ErrBadRequest
 	}
 
-	result, err := o.orderUsecase.AdminCountingOrderAmount(context, &req)
+	result, err := o.orderQueryServ.AdminCountingOrderAmount(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):
@@ -601,7 +604,7 @@ func (o orderApiHandler) UserCountingOrder(ctx *fiber.Ctx) error {
 	userId := fmt.Sprintf("%v", ctx.Locals(auth.USER_ID))
 	req.OwnerID = userId
 
-	result, err := o.orderUsecase.UserCountingOrder(context, &req)
+	result, err := o.orderQueryServ.UserCountingOrder(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):
@@ -627,7 +630,7 @@ func (o orderApiHandler) StoreCountingOrder(ctx *fiber.Ctx) error {
 	storeId := fmt.Sprintf("%v", ctx.Locals(auth.STORE_ID))
 	req.OwnerID = storeId
 
-	result, err := o.orderUsecase.StoreCountingOrder(context, &req)
+	result, err := o.orderQueryServ.StoreCountingOrder(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):
@@ -653,7 +656,7 @@ func (o orderApiHandler) DeliveryCountingOrder(ctx *fiber.Ctx) error {
 	deli := fmt.Sprintf("%v", ctx.Locals(auth.DELIVERY_ID))
 	req.OwnerID = deli
 
-	result, err := o.orderUsecase.DeliveryCountingOrder(context, &req)
+	result, err := o.orderQueryServ.DeliveryCountingOrder(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):

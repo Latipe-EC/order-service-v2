@@ -22,13 +22,13 @@ type OrderApiHandler interface {
 
 	GetOrdersByDelivery(ctx *fiber.Ctx) error
 
-	InternalGetOrderByUUID(ctx *fiber.Ctx) error
+	InternalGetOrderByOrderID(ctx *fiber.Ctx) error
 
 	AdminCountingOrder(ctx *fiber.Ctx) error
 	UserCountingOrder(ctx *fiber.Ctx) error
 	StoreCountingOrder(ctx *fiber.Ctx) error
 	DeliveryCountingOrder(ctx *fiber.Ctx) error
-	UserGetOrderByUUID(ctx *fiber.Ctx) error
+	UserGetOrderByID(ctx *fiber.Ctx) error
 	DeliveryGetOrderByUUID(ctx *fiber.Ctx) error
 	SearchOrderIdByKeyword(ctx *fiber.Ctx) error
 }
