@@ -17,7 +17,7 @@ func MappingDataToMessage(dao *order.Order, cartIds []string) *msgDTO.OrderMessa
 
 	orderMsg.Address.AddressId = dao.Delivery.AddressId
 	orderMsg.Delivery.DeliveryId = dao.Delivery.DeliveryId
-
+	orderMsg.StoreID = dao.StoreId
 	//order detail
 	var orderItems []msgDTO.OrderItemsMessage
 	for _, i := range dao.OrderItem {
@@ -25,7 +25,6 @@ func MappingDataToMessage(dao *order.Order, cartIds []string) *msgDTO.OrderMessa
 			ProductItem: msgDTO.ProductItem{
 				ProductID:   i.ProductID,
 				ProductName: i.ProductName,
-				StoreID:     i.StoreID,
 				NameOption:  i.NameOption,
 				OptionID:    i.OptionID,
 				Quantity:    i.Quantity,

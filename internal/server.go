@@ -32,7 +32,7 @@ import (
 type Server struct {
 	app       *fiber.App
 	cfg       *config.Config
-	orderSubs *worker.OrderTransactionSubscriber
+	orderSubs *worker.PurchaseReplySubscriber
 }
 
 func New() (*Server, error) {
@@ -61,7 +61,7 @@ func New() (*Server, error) {
 func NewServer(
 	cfg *config.Config,
 	orderRouter router.OrderRouter,
-	orderSubs *worker.OrderTransactionSubscriber) *Server {
+	orderSubs *worker.PurchaseReplySubscriber) *Server {
 
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  cfg.Server.ReadTimeout,
@@ -109,6 +109,6 @@ func (serv Server) Config() *config.Config {
 	return serv.cfg
 }
 
-func (serv Server) OrderTransactionSubscriber() *worker.OrderTransactionSubscriber {
+func (serv Server) OrderTransactionSubscriber() *worker.PurchaseReplySubscriber {
 	return serv.orderSubs
 }

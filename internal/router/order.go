@@ -31,7 +31,7 @@ func (o orderRouter) Init(root *fiber.Router) {
 		//admin
 		adminRouter := orderRouter.Group("/admin")
 		{
-			adminRouter.Get("/:id", o.middleware.Authentication.RequiredAuthentication(), o.orderHandler.GetOrderByUUID)
+			adminRouter.Get("/:id", o.middleware.Authentication.RequiredAuthentication(), o.orderHandler.GetByOrderId)
 			adminRouter.Get("", o.middleware.Authentication.RequiredAuthentication(), o.orderHandler.ListOfOrder)
 			adminRouter.Get("/total/count", o.middleware.Authentication.RequiredAuthentication(), o.orderHandler.AdminCountingOrder)
 			adminRouter.Patch("/status/cancel", o.middleware.Authentication.RequiredAuthentication(), o.orderHandler.AdminCancelOrder)
@@ -56,17 +56,16 @@ func (o orderRouter) Init(root *fiber.Router) {
 			storeRouter.Get("/search", o.middleware.Authentication.RequiredStoreAuthentication(), o.orderHandler.SearchOrderIdByKeyword)
 			storeRouter.Get("/total/count", o.middleware.Authentication.RequiredStoreAuthentication(), o.orderHandler.StoreCountingOrder)
 			storeRouter.Get("/:id", o.middleware.Authentication.RequiredStoreAuthentication(), o.orderHandler.GetStoreOrderDetail)
-			storeRouter.Patch("/:id/items", o.middleware.Authentication.RequiredStoreAuthentication(), o.orderHandler.UpdateOrderItemStatus)
-			storeRouter.Delete("/:id/items", o.middleware.Authentication.RequiredStoreAuthentication(), o.orderHandler.CancelOrderItemStatus)
+			storeRouter.Patch("/:id/status", o.middleware.Authentication.RequiredStoreAuthentication(), o.orderHandler.UpdateOrderStatusByStore)
 		}
 
 		//delivery
 		deliveryRouter := orderRouter.Group("/delivery")
 		{
 			deliveryRouter.Get("", o.middleware.Authentication.RequiredDeliveryAuthentication(), o.orderHandler.GetOrdersByDelivery)
-			deliveryRouter.Get("/:id", o.middleware.Authentication.RequiredDeliveryAuthentication(), o.orderHandler.DeliveryGetOrderByUUID)
+			deliveryRouter.Get("/:id", o.middleware.Authentication.RequiredDeliveryAuthentication(), o.orderHandler.DeliveryGetOrderByID)
 			deliveryRouter.Get("/total/count", o.middleware.Authentication.RequiredDeliveryAuthentication(), o.orderHandler.DeliveryCountingOrder)
-			deliveryRouter.Patch("/:id", o.middleware.Authentication.RequiredDeliveryAuthentication(), o.orderHandler.UpdateStatusByDelivery)
+			deliveryRouter.Patch("/:id", o.middleware.Authentication.RequiredDeliveryAuthentication(), o.orderHandler.UpdateOrderStatusByDelivery)
 		}
 
 		//internal

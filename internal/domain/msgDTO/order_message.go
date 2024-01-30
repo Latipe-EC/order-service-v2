@@ -9,6 +9,7 @@ type OrderMessage struct {
 	UserRequest      UserRequest         `json:"user_request,omitempty"`
 	Status           int                 `json:"status"`
 	OrderID          string              `json:"order_id,omitempty"`
+	StoreID          string              `json:"store_id" validate:"required"`
 	Amount           int                 `json:"amount,omitempty" validate:"required"`
 	ShippingCost     int                 `json:"shipping_cost,omitempty"`
 	ShippingDiscount int                 `json:"shipping_discount,omitempty" validate:"required"`

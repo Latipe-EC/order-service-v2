@@ -6,31 +6,31 @@ import (
 
 type OrderApiHandler interface {
 	CreateOrder(ctx *fiber.Ctx) error
-	UpdateOrderStatus(ctx *fiber.Ctx) error
+
 	ListOfOrder(ctx *fiber.Ctx) error
-	GetOrderByUUID(ctx *fiber.Ctx) error
+	GetByOrderId(ctx *fiber.Ctx) error
 	GetMyOrder(ctx *fiber.Ctx) error
+	UserGetOrderByID(ctx *fiber.Ctx) error
+
+	SearchOrderIdByKeyword(ctx *fiber.Ctx) error
+	GetMyStoreOrder(ctx *fiber.Ctx) error
+	GetStoreOrderDetail(ctx *fiber.Ctx) error
+	GetOrdersByDelivery(ctx *fiber.Ctx) error
+	DeliveryGetOrderByID(ctx *fiber.Ctx) error
+
+	UpdateOrderStatus(ctx *fiber.Ctx) error
+	UpdateOrderStatusByStore(ctx *fiber.Ctx) error
+	UpdateOrderStatusByDelivery(ctx *fiber.Ctx) error
 	UserCancelOrder(ctx *fiber.Ctx) error
 	UserRefundOrder(ctx *fiber.Ctx) error
 	AdminCancelOrder(ctx *fiber.Ctx) error
-
-	GetMyStoreOrder(ctx *fiber.Ctx) error
-	GetStoreOrderDetail(ctx *fiber.Ctx) error
-	UpdateOrderItemStatus(ctx *fiber.Ctx) error
-	UpdateStatusByDelivery(ctx *fiber.Ctx) error
-	CancelOrderItemStatus(ctx *fiber.Ctx) error
-
-	GetOrdersByDelivery(ctx *fiber.Ctx) error
-
-	InternalGetOrderByOrderID(ctx *fiber.Ctx) error
 
 	AdminCountingOrder(ctx *fiber.Ctx) error
 	UserCountingOrder(ctx *fiber.Ctx) error
 	StoreCountingOrder(ctx *fiber.Ctx) error
 	DeliveryCountingOrder(ctx *fiber.Ctx) error
-	UserGetOrderByID(ctx *fiber.Ctx) error
-	DeliveryGetOrderByUUID(ctx *fiber.Ctx) error
-	SearchOrderIdByKeyword(ctx *fiber.Ctx) error
+
+	InternalGetOrderByOrderID(ctx *fiber.Ctx) error
 }
 
 type OrderStatisticApiHandler interface {

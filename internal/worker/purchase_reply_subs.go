@@ -12,20 +12,20 @@ import (
 	"time"
 )
 
-type OrderTransactionSubscriber struct {
+type PurchaseReplySubscriber struct {
 	config    *config.Config
 	conn      *amqp.Connection
 	orderServ ordercommand.OrderCommandUsecase
 }
 
-func NewOrderTransactionSubscriber(cfg *config.Config, conn *amqp.Connection, orderServ ordercommand.OrderCommandUsecase) *OrderTransactionSubscriber {
-	return &OrderTransactionSubscriber{
+func NewPurchaseReplySubscriber(cfg *config.Config, conn *amqp.Connection, orderServ ordercommand.OrderCommandUsecase) *PurchaseReplySubscriber {
+	return &PurchaseReplySubscriber{
 		config:    cfg,
 		orderServ: orderServ,
 		conn:      conn,
 	}
 }
-func (mq OrderTransactionSubscriber) ListenOrderEventQueue(wg *sync.WaitGroup) {
+func (mq PurchaseReplySubscriber) ListenOrderEventQueue(wg *sync.WaitGroup) {
 	channel, err := mq.conn.Channel()
 	defer channel.Close()
 
@@ -84,7 +84,7 @@ func (mq OrderTransactionSubscriber) ListenOrderEventQueue(wg *sync.WaitGroup) {
 	// handle consumed messages from queue
 	for msg := range msgs {
 		log.Infof("received order message from: %s", msg.RoutingKey)
-		if err := mq.orderHandler(msg); err != nil {
+		if err := mq.messsageHandler(msg); err != nil {
 			log.Infof("The order creation failed cause %s", err)
 		}
 
@@ -94,7 +94,7 @@ func (mq OrderTransactionSubscriber) ListenOrderEventQueue(wg *sync.WaitGroup) {
 	log.Infof("waiting for messages...")
 }
 
-func (mq OrderTransactionSubscriber) orderHandler(msg amqp.Delivery) error {
+func (mq PurchaseReplySubscriber) messsageHandler(msg amqp.Delivery) error {
 	startTime := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -106,7 +106,7 @@ func (mq OrderTransactionSubscriber) orderHandler(msg amqp.Delivery) error {
 		return err
 	}
 
-	if err := mq.orderServ.UpdateOrderStatusByEvent(ctx, &message); err != nil {
+	if err := mq.orderServ.UpdateOrderStatusByReplyMessage(ctx, &message); err != nil {
 		log.Infof("Handling order message was failed cause: %s", err)
 		return err
 	}

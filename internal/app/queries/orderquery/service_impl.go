@@ -89,7 +89,7 @@ func (o orderQueryService) GetOrderById(ctx context.Context, dto *orderDTO.GetOr
 			return nil, errors.ErrNotFound
 		}
 	case auth.ROLE_STORE:
-		if !CheckStoreHaveOrder(*orderDAO, dto.OwnerId) {
+		if orderDAO.StoreId != dto.OwnerId {
 			return nil, errors.ErrNotFound
 		}
 	}
@@ -117,7 +117,7 @@ func (o orderQueryService) GetOrderByID(ctx context.Context, dto *orderDTO.GetOr
 			return nil, errors.ErrNotFound
 		}
 	case auth.ROLE_STORE:
-		if !CheckStoreHaveOrder(*orderDAO, dto.OwnerId) {
+		if orderDAO.StoreId != dto.OwnerId {
 			return nil, errors.ErrNotFound
 		}
 	case auth.ROLE_DELIVERY:
@@ -278,7 +278,7 @@ func (o orderQueryService) ViewDetailStoreOrder(ctx context.Context, dto *store.
 		return nil, err
 	}
 
-	if !CheckStoreHaveOrder(*orderDAO, dto.StoreID) {
+	if orderDAO.StoreId != dto.StoreID {
 		return nil, errors.ErrNotFound
 	}
 
@@ -289,22 +289,19 @@ func (o orderQueryService) ViewDetailStoreOrder(ctx context.Context, dto *store.
 	storeAmount := 0
 	var items []store.OrderStoreItem
 	for _, o := range orderDAO.OrderItem {
-		if o.StoreID == dto.StoreID {
-			i := store.OrderStoreItem{
-				ProductId:   o.ProductID,
-				OptionId:    o.OptionID,
-				Quantity:    o.Quantity,
-				Price:       o.Price,
-				Status:      o.Status,
-				Id:          o.Id,
-				SubTotal:    o.SubTotal,
-				ProdImg:     o.ProdImg,
-				ProductName: o.ProductName,
-				NetPrice:    o.NetPrice,
-			}
-			items = append(items, i)
-			storeAmount += o.SubTotal
+		i := store.OrderStoreItem{
+			ProductId:   o.ProductID,
+			OptionId:    o.OptionID,
+			Quantity:    o.Quantity,
+			Price:       o.Price,
+			Id:          o.Id,
+			SubTotal:    o.SubTotal,
+			ProdImg:     o.ProdImg,
+			ProductName: o.ProductName,
+			NetPrice:    o.NetPrice,
 		}
+		items = append(items, i)
+		storeAmount += o.SubTotal
 	}
 
 	if len(items) < 1 {

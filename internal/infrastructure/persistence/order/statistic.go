@@ -5,7 +5,6 @@ import (
 	gormF "gorm.io/gorm"
 	"latipe-order-service-v2/internal/domain/dto/custom_entity"
 	entity "latipe-order-service-v2/internal/domain/entities/order"
-	"latipe-order-service-v2/internal/domain/msgDTO"
 )
 
 func (g GormRepository) UserCountingOrder(ctx context.Context, userId string) (int, error) {
@@ -20,29 +19,23 @@ func (g GormRepository) UserCountingOrder(ctx context.Context, userId string) (i
 }
 
 func (g GormRepository) StoreCountingOrder(ctx context.Context, storeId string) (int, error) {
-	queryResp := struct {
-		Count int64 `json:"count"`
-	}{}
-	sql := `SELECT count(distinct dto) as count
-			FROM orders
-    		Join order_items oi on orders.order_id = oi.dto
-			Where store_id = ?
-			`
-	err := g.client.Exec(func(tx *gormF.DB) error {
-		return tx.Raw(sql, storeId).Scan(&queryResp).Error
-	}, ctx)
-	if err != nil {
-		return 0, err
-	}
 
-	return int(queryResp.Count), err
+	var count int64
+
+	err := g.client.Exec(func(tx *gormF.DB) error {
+		return tx.Model(&entity.Order{}).
+			Where("orders.store_id=?", storeId).
+			Count(&count).Error
+	}, ctx)
+
+	return int(count), err
 
 }
 
 func (g GormRepository) DeliveryCountingOrder(ctx context.Context, deliveryId string) (int, error) {
 	var count int64
 	result := g.client.Exec(func(tx *gormF.DB) error {
-		return tx.Model(&msgDTO.Delivery{}).
+		return tx.Model(&entity.Order{}).
 			Where("delivery_id=?", deliveryId).
 			Count(&count).Error
 	}, ctx)
@@ -125,7 +118,7 @@ func (g GormRepository) GetTotalCommissionOrderInYear(ctx context.Context, date 
 				"SUM(amount) as amount, "+
 				"SUM(orders_commission.amount_received) as store_received, "+
 				"SUM(orders_commission.system_fee) as system_received").
-			Joins("INNER JOIN orders_commission ON orders.order_id = orders_commission.dto").
+			Joins("INNER JOIN orders_commission ON orders.order_id = orders_commission.order_id").
 			Where("orders.created_at >= ?", date).
 			Where("year(orders_commission.created_at) = year(?)", date).
 			Group("MONTH(orders.created_at)").
@@ -145,7 +138,7 @@ func (g GormRepository) TopOfProductSold(ctx context.Context, date string, count
 	err := g.client.Exec(func(tx *gormF.DB) error {
 		return tx.Table("orders").
 			Select("oi.product_id as product_id, oi.product_name as product_name, SUM(oi.quantity) as total").
-			Joins("INNER JOIN order_items oi ON orders.order_id = oi.dto").
+			Joins("INNER JOIN order_items oi ON orders.order_id = oi.order_id").
 			Where("orders.created_at >= ?", date).
 			Where("year(orders.created_at) = year(?)", date).
 			Where("month(orders.created_at) = month(?)", date).
@@ -231,8 +224,7 @@ func (g GormRepository) TopOfProductSoldOfStore(ctx context.Context, date string
 		return tx.Table("orders").
 			Select("order_items.product_id as product_id, order_items.product_name as product_name, "+
 				"SUM(order_items.quantity) as total").
-			Joins("INNER JOIN order_items ON orders.order_id = order_items.dto").
-			Where("order_items.store_id = ?", storeId).
+			Joins("INNER JOIN order_items ON orders.order_id = order_items.order_id").
 			Where("orders.created_at >= ?", date).
 			Group("order_items.product_id, order_items.product_name").
 			Limit(count).
@@ -251,9 +243,8 @@ func (g GormRepository) GetOrderAmountOfStore(ctx context.Context, orderId strin
 	err := g.client.Exec(func(tx *gormF.DB) error {
 		return tx.Table("orders").
 			Select("oi.store_id as store_id, SUM(order_items.sub_total) as order_amount").
-			Joins("INNER JOIN order_items ON orders.order_id = order_items.dto").
+			Joins("INNER JOIN order_items ON orders.order_id = order_items.order_id").
 			Where("orders.order_id = ?", orderId).
-			Group("order_items.store_id").
 			Scan(&result).Error
 	}, ctx)
 	if err != nil {

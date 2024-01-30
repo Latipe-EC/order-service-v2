@@ -120,8 +120,7 @@ func (g GormRepository) FindOrderByStoreID(ctx context.Context, storeId string, 
 
 	err := g.client.DB().Model(&entity.Order{}).
 		Preload("Delivery").
-		Joins("inner join orders_commission on orders_commission.dto = orders.order_id").
-		Where("orders_commission.store_id=?", storeId).
+		Where("orders.store_id=?", storeId).
 		Where(whereState).
 		Where(likeState).
 		Limit(query.GetLimit()).Offset(query.GetOffset()).
@@ -138,8 +137,7 @@ func (g GormRepository) SearchOrderByStoreID(ctx context.Context, storeId string
 	var orders []entity.Order
 	err := g.client.DB().Model(&entity.Order{}).
 		Preload("Delivery").
-		Joins("inner join orders_commission on orders_commission.dto = orders.order_id").
-		Where("orders_commission.store_id=?", storeId).
+		Where("orders.store_id=?", storeId).
 		Where("orders.order_id like ?", fmt.Sprintf("'%%%v%%'", keyword)).
 		Limit(query.GetLimit()).Offset(query.GetOffset()).
 		Find(&orders).Error
@@ -155,8 +153,7 @@ func (g GormRepository) TotalSearchOrderByStoreID(ctx context.Context, storeId s
 	var count int64
 
 	err := g.client.DB().Select("*").Model(&entity.Order{}).
-		Joins("inner join orders_commission on orders_commission.dto = orders.order_id").
-		Where("orders_commission.store_id=?", storeId).
+		Where("orders.store_id=?", storeId).
 		Where("orders.order_id like ?", fmt.Sprintf("'%%%v%%'", keyword)).
 		Count(&count).Error
 
@@ -180,7 +177,7 @@ func (g GormRepository) FindOrderByDelivery(ctx context.Context, deliID string, 
 	}
 
 	err := g.client.DB().Model(&entity.Order{}).Preload("Delivery").
-		Joins("inner join delivery_orders ON orders.order_id = delivery_orders.dto").
+		Joins("inner join delivery_orders ON orders.order_id = delivery_orders.order_id").
 		Where("delivery_orders.delivery_id=?", deliID).
 		Order("orders.created_at DESC").
 		Where(searchState).
@@ -196,8 +193,10 @@ func (g GormRepository) FindOrderByDelivery(ctx context.Context, deliID string, 
 
 func (g GormRepository) FindOrderByUserAndProduct(ctx context.Context, userId string, productId string) ([]entity.Order, error) {
 	var orders []entity.Order
-	err := g.client.DB().Raw("select * from orders inner join order_items on orders.order_id = order_items.dto "+
-		"where orders.user_id= ? and order_items.product_id = ?", userId, productId).Scan(&orders).Error
+	err := g.client.DB().
+		Raw("select * from orders "+
+			"inner join order_items on orders.order_id = order_items.order_id"+
+			"where orders.user_id= ? and order_items.product_id = ?", userId, productId).Scan(&orders).Error
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +207,7 @@ func (g GormRepository) FindOrderByUserAndProduct(ctx context.Context, userId st
 func (g GormRepository) FindOrderLogByOrderId(ctx context.Context, orderId string) ([]entity.OrderStatusLog, error) {
 	var orderStatus []entity.OrderStatusLog
 	result := g.client.DB().Model(&entity.OrderStatusLog{}).
-		Where("dto", orderId).
+		Where("order_status_logs.order_id", orderId).
 		Order("created_at desc").
 		Find(&orderStatus).Error
 	if result != nil {
@@ -236,14 +235,12 @@ func (g GormRepository) UpdateStatus(ctx context.Context, orderID string, status
 
 	if len(message) == 0 {
 		switch status {
-		case entity.ORDER_PENDING:
-			updateLog.Message = "Đơn hàng đang xử lý bởi nhà bán hàng"
+		case entity.ORDER_PREPARED:
+			updateLog.Message = "Đơn hàng đã chuẩn bị bởi nhà bán hàng"
 		case entity.ORDER_DELIVERY:
 			updateLog.Message = "Đơn hàng đang được vận chuyển"
 		case entity.ORDER_SHIPPING_FINISH:
 			updateLog.Message = "Đơn hàng được giao thành công"
-		case entity.ORDER_CANCEL:
-			updateLog.Message = "Đơn hàng bị hủy"
 		}
 	} else {
 		updateLog.Message = message[0]
@@ -295,7 +292,7 @@ func (g GormRepository) TotalOrdersOfDelivery(ctx context.Context, deliveryId st
 	}
 
 	err := g.client.DB().Select("*").Model(&entity.Order{}).
-		Joins("inner join delivery_orders ON orders.order_id = delivery_orders.dto").
+		Joins("inner join delivery_orders ON orders.order_id = delivery_orders.order_id").
 		Where(searchState).
 		Where(whereState).
 		Where("delivery_orders.delivery_id=?", deliveryId).
@@ -348,8 +345,7 @@ func (g GormRepository) TotalStoreOrder(ctx context.Context, storeId string, que
 	}
 
 	err := g.client.DB().Select("*").Model(&entity.Order{}).
-		Joins("inner join orders_commission on orders_commission.dto = orders.order_id").
-		Where("orders_commission.store_id=?", storeId).
+		Where("orders.store_id=?", storeId).
 		Where(whereState).
 		Where(likeState).
 		Count(&count).Error

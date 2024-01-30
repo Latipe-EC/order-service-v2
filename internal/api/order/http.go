@@ -117,7 +117,7 @@ func (o orderApiHandler) UserCancelOrder(ctx *fiber.Ctx) error {
 
 	req.UserId = userId
 
-	err := o.orderCommandServ.CancelOrder(context, req)
+	err := o.orderCommandServ.UserCancelOrder(context, req)
 	if err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func (o orderApiHandler) UserRefundOrder(ctx *fiber.Ctx) error {
 
 	req.UserId = userId
 
-	err := o.orderCommandServ.CancelOrder(context, req)
+	err := o.orderCommandServ.UserRefundOrder(context, req)
 	if err != nil {
 		return err
 	}
@@ -231,7 +231,7 @@ func (o orderApiHandler) ListOfOrder(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
-func (o orderApiHandler) GetOrderByUUID(ctx *fiber.Ctx) error {
+func (o orderApiHandler) GetByOrderId(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 	req := new(dto.GetOrderByIDRequest)
 
@@ -288,7 +288,7 @@ func (o orderApiHandler) UserGetOrderByID(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
-func (o orderApiHandler) DeliveryGetOrderByUUID(ctx *fiber.Ctx) error {
+func (o orderApiHandler) DeliveryGetOrderByID(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 	req := new(dto.GetOrderByIDRequest)
 
@@ -405,10 +405,10 @@ func (o orderApiHandler) GetStoreOrderDetail(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
-func (o orderApiHandler) UpdateOrderItemStatus(ctx *fiber.Ctx) error {
+func (o orderApiHandler) UpdateOrderStatusByStore(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 
-	req := store.UpdateOrderItemRequest{}
+	req := store.StoreUpdateOrderStatusRequest{}
 
 	if err := ctx.BodyParser(&req); err != nil {
 		return errors.ErrInternalServer.WithInternalError(err)
@@ -425,49 +425,17 @@ func (o orderApiHandler) UpdateOrderItemStatus(ctx *fiber.Ctx) error {
 
 	req.StoreId = storeId
 
-	resp, err := o.orderCommandServ.UpdateOrderItem(context, &req)
+	err := o.orderCommandServ.StoreUpdateOrderStatus(context, &req)
 	if err != nil {
 		return err
 	}
 
 	data := responses.DefaultSuccess
-	data.Data = resp
 
 	return data.JSON(ctx)
 }
 
-func (o orderApiHandler) CancelOrderItemStatus(ctx *fiber.Ctx) error {
-	context := ctx.Context()
-
-	req := store.UpdateOrderItemRequest{}
-
-	if err := ctx.BodyParser(&req); err != nil {
-		return errors.ErrInternalServer.WithInternalError(err)
-	}
-
-	if err := ctx.ParamsParser(&req); err != nil {
-		return errors.ErrInternalServer.WithInternalError(err)
-	}
-
-	storeId := fmt.Sprintf("%v", ctx.Locals(auth.STORE_ID))
-	if storeId == "" {
-		return errors.ErrUnauthenticated
-	}
-
-	req.StoreId = storeId
-
-	resp, err := o.orderCommandServ.CancelOrderItem(context, &req)
-	if err != nil {
-		return err
-	}
-
-	data := responses.DefaultSuccess
-	data.Data = resp
-
-	return data.JSON(ctx)
-}
-
-func (o orderApiHandler) UpdateStatusByDelivery(ctx *fiber.Ctx) error {
+func (o orderApiHandler) UpdateOrderStatusByDelivery(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 
 	req := delivery.UpdateOrderStatusRequest{}
@@ -491,13 +459,12 @@ func (o orderApiHandler) UpdateStatusByDelivery(ctx *fiber.Ctx) error {
 		return errors.ErrBadRequest
 	}
 
-	resp, err := o.orderCommandServ.DeliveryUpdateStatusOrder(context, req)
+	err := o.orderCommandServ.DeliveryUpdateOrderStatus(context, req)
 	if err != nil {
 		return err
 	}
 
 	data := responses.DefaultSuccess
-	data.Data = resp
 
 	return data.JSON(ctx)
 }

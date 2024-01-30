@@ -39,14 +39,10 @@ type orderCommandService struct {
 	userGrpc     usergrpc.UserServiceGRPCClient
 }
 
-func NewOrderCommmandService(cfg *config.Config,
-	orderRepo order.Repository,
-	cacheEngine *redis.CacheEngine,
-	publisher *publishMsg.PublisherTransactionMessage,
-	voucherGrpc vouchergrpc.VoucherServiceGRPCClient,
-	productGrpc productgrpc.ProductServiceGRPCClient,
-	deliveryGrpc deliverygrpc.DeliveryServiceGRPCClient,
-	userGrpc usergrpc.UserServiceGRPCClient) OrderCommandUsecase {
+func NewOrderCommmandService(cfg *config.Config, orderRepo order.Repository,
+	cacheEngine *redis.CacheEngine, publisher *publishMsg.PublisherTransactionMessage,
+	voucherGrpc vouchergrpc.VoucherServiceGRPCClient, productGrpc productgrpc.ProductServiceGRPCClient,
+	deliveryGrpc deliverygrpc.DeliveryServiceGRPCClient, userGrpc usergrpc.UserServiceGRPCClient) OrderCommandUsecase {
 	return orderCommandService{
 		orderRepo:    orderRepo,
 		cacheEngine:  cacheEngine,
@@ -159,6 +155,7 @@ func (o orderCommandService) saveOrderIntoDatabase(ctx context.Context, dto *ord
 	orderDAO := order.Order{}
 	orderDAO.Username = dto.UserRequest.Username
 	orderDAO.UserId = dto.UserRequest.UserId
+	orderDAO.StoreId = productItems.StoreId
 
 	if err := mapper.BindingStruct(dto, &orderDAO); err != nil {
 		log.Errorf("Mapping value from dto to dao failed cause: %s", err)
@@ -172,7 +169,6 @@ func (o orderCommandService) saveOrderIntoDatabase(ctx context.Context, dto *ord
 		i := order.OrderItem{
 			ProductID:   item.ProductId,
 			ProductName: item.Name,
-			StoreID:     item.StoreId,
 			NameOption:  item.NameOption,
 			OptionID:    item.OptionId,
 			Quantity:    int(item.Quantity),
@@ -264,95 +260,74 @@ func (o orderCommandService) saveOrderIntoDatabase(ctx context.Context, dto *ord
 	return &orderDAO, nil
 }
 
-func (o orderCommandService) CancelOrder(ctx context.Context, dto *orderDTO.CancelOrderRequest) error {
-	dao, err := o.orderRepo.FindByID(ctx, dto.OrderID)
+func (o orderCommandService) StoreUpdateOrderStatus(ctx context.Context, dto *store.StoreUpdateOrderStatusRequest) error {
+	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderID)
 	if err != nil {
 		return err
 	}
 
-	if dao.UserId != dto.UserId {
+	if orderDAO.StoreId != dto.StoreId {
 		return errors.ErrNotFoundRecord
 	}
 
-	if dao.Status == order.ORDER_CANCEL {
-		return errors.ErrNotChange
-	}
-
-	if dao.Status != order.ORDER_CREATED {
-		return errors.OrderCannotCancel
-	}
-
-	if err := o.orderRepo.UpdateStatus(ctx, dao.OrderID, order.ORDER_CANCEL); err != nil {
-		return err
-	}
-
-	mess := msgDTO.OrderStatusMessage{
-		OrderID: dao.OrderID,
-		Status:  order.ORDER_CANCEL,
-	}
-
-	if err := o.publisher.SendOrderCancelMessage(&mess); err != nil {
-		return err
+	switch dto.Status {
+	case order.ORDER_PREPARED:
+		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_PREPARED); err != nil {
+			return err
+		}
+	case order.ORDER_CANCEL_BY_STORE:
+		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_CANCEL_BY_STORE,
+			fmt.Sprintf("Đơn hàng bị hủy do yêu cầu của cửa hàng:%v", dto.Message)); err != nil {
+			return err
+		}
+	default:
+		return errors.OrderCannotUpdate
 	}
 
 	return nil
 }
 
-func (o orderCommandService) UserRefundOrder(ctx context.Context, dto *orderDTO.CancelOrderRequest) error {
-	dao, err := o.orderRepo.FindByID(ctx, dto.OrderID)
+func (o orderCommandService) DeliveryUpdateOrderStatus(ctx context.Context, dto delivery.UpdateOrderStatusRequest) error {
+	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderID)
 	if err != nil {
 		return err
 	}
 
-	if dao.UserId != dto.UserId {
+	if orderDAO.Delivery.DeliveryId != dto.DeliveryID {
 		return errors.ErrNotFoundRecord
 	}
 
-	if dao.Status == order.ORDER_REFUND {
-		return errors.ErrNotChange
+	if orderDAO.Status != order.ORDER_PREPARED {
+		return errors.OrderStatusNotValid
 	}
 
-	if dao.Status != order.ORDER_SHIPPING_FINISH {
-		return errors.OrderCannotCancel
-	}
-
-	if err := o.orderRepo.UpdateStatus(ctx, dao.OrderID, order.ORDER_REFUND); err != nil {
-		return err
-	}
-
-	mess := msgDTO.OrderStatusMessage{
-		OrderID: dao.OrderID,
-		Status:  order.ORDER_REFUND,
-	}
-
-	if err := o.publisher.SendOrderCancelMessage(&mess); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (o orderCommandService) AdminCancelOrder(ctx context.Context, dto *orderDTO.CancelOrderRequest) error {
-	dao, err := o.orderRepo.FindByID(ctx, dto.OrderID)
-	if err != nil {
-		return err
-	}
-
-	if dao.Status == order.ORDER_CANCEL {
-		return errors.ErrNotChange
-	}
-
-	if err := o.orderRepo.UpdateStatus(ctx, dao.OrderID, order.ORDER_CANCEL); err != nil {
-		return err
-	}
-
-	mess := msgDTO.OrderStatusMessage{
-		OrderID: dao.OrderID,
-		Status:  order.ORDER_CANCEL,
-	}
-
-	if err := o.publisher.SendOrderCancelMessage(&mess); err != nil {
-		return err
+	switch dto.Status {
+	case order.ORDER_DELIVERY:
+		orderDAO.Status = dto.Status
+		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, dto.Status,
+			"Đơn hàng được đơn vị vận chuyển tiếp nhận và giao hàng"); err != nil {
+			return err
+		}
+	case order.ORDER_CANCEL_BY_USER:
+		orderDAO.Status = dto.Status
+		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, dto.Status,
+			fmt.Sprintf("Đơn hàng không thể giao thành công lý do: %v", dto.Message)); err != nil {
+			return err
+		}
+	case order.ORDER_CANCEL_BY_DELI:
+		orderDAO.Status = dto.Status
+		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, dto.Status,
+			fmt.Sprintf("Đơn hàng giao thất bại lý do: %v", dto.Message)); err != nil {
+			return err
+		}
+	case order.ORDER_SHIPPING_FINISH:
+		orderDAO.Status = dto.Status
+		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, dto.Status,
+			fmt.Sprintf("Đơn hàng giao thành công: %v", dto.Message)); err != nil {
+			return err
+		}
+	default:
+		return errors.OrderCannotUpdate
 	}
 
 	return nil
@@ -365,7 +340,7 @@ func (o orderCommandService) UpdateStatusOrder(ctx context.Context, dto *orderDT
 		return err
 	}
 
-	if orderDAO.Status == order.ORDER_CANCEL {
+	if orderDAO.Status < 0 {
 		return errors.ErrBadRequest
 	}
 
@@ -378,7 +353,7 @@ func (o orderCommandService) UpdateStatusOrder(ctx context.Context, dto *orderDT
 	return nil
 }
 
-func (o orderCommandService) UpdateOrderStatusByEvent(ctx context.Context, dto *msgDTO.OrderStatusMessage) error {
+func (o orderCommandService) UpdateOrderStatusByReplyMessage(ctx context.Context, dto *msgDTO.OrderStatusMessage) error {
 
 	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderID)
 	if err != nil {
@@ -426,140 +401,90 @@ func (o orderCommandService) UpdateOrderStatusByEvent(ctx context.Context, dto *
 	return nil
 }
 
-func (o orderCommandService) DeliveryUpdateStatusOrder(ctx context.Context, dto delivery.UpdateOrderStatusRequest) (*delivery.UpdateOrderStatusResponse, error) {
-	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderID)
+func (o orderCommandService) UserRefundOrder(ctx context.Context, dto *orderDTO.CancelOrderRequest) error {
+	dao, err := o.orderRepo.FindByID(ctx, dto.OrderID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if orderDAO.Status != order.ORDER_DELIVERY {
-		return nil, errors.OrderStatusNotValid
+	if dao.UserId != dto.UserId {
+		return errors.ErrNotFoundRecord
 	}
 
-	if orderDAO.Delivery.DeliveryId != dto.DeliveryID {
-		return nil, errors.ErrNotFoundRecord
-	}
-
-	if dto.Status == order.ORDER_CANCEL || dto.Status == order.ORDER_SHIPPING_FINISH {
-		orderDAO.Status = dto.Status
-		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, dto.Status); err != nil {
-			return nil, err
+	switch dao.Status {
+	case order.ORDER_SHIPPING_FINISH:
+		if err := o.orderRepo.UpdateStatus(ctx, dao.OrderID, order.ORDER_REFUND); err != nil {
+			return err
 		}
-	} else {
-		return nil, errors.ErrBadRequest
+	default:
+		return errors.OrderCannotRefund
 	}
 
-	ordMsg := msgDTO.OrderStatusMessage{
-		Status:  dto.Status,
-		OrderID: orderDAO.OrderID,
+	mess := msgDTO.OrderStatusMessage{
+		OrderID: dao.OrderID,
+		Status:  order.ORDER_REFUND,
 	}
 
-	if dto.Status == order.ORDER_CANCEL || dto.Status == order.ORDER_SHIPPING_FINISH {
-		if err := o.publisher.SendOrderCancelMessage(&ordMsg); err != nil {
-			return nil, err
-		}
+	if err := o.publisher.SendOrderCancelMessage(&mess); err != nil {
+		return err
 	}
 
-	return nil, nil
+	return nil
 }
 
-func (o orderCommandService) UpdateOrderItem(ctx context.Context, dto *store.UpdateOrderItemRequest) (*store.UpdateOrderItemResponse, error) {
-	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderID)
+func (o orderCommandService) UserCancelOrder(ctx context.Context, dto *orderDTO.CancelOrderRequest) error {
+	dao, err := o.orderRepo.FindByID(ctx, dto.OrderID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	notFound := true
-	itemPreparedCount := 0
+	if dao.UserId != dto.UserId {
+		return errors.ErrNotFoundRecord
+	}
 
-	for _, i := range orderDAO.OrderItem {
-
-		if i.StoreID != dto.StoreId {
-			continue
+	switch dao.Status {
+	case order.ORDER_CREATED:
+		if err := o.orderRepo.UpdateStatus(ctx, dao.OrderID, order.ORDER_CANCEL_BY_USER,
+			fmt.Sprintf("Đơn hàng bị hủy do yêu cầu của người mua:%v", dto.Message)); err != nil {
+			return err
 		}
-
-		if i.Id == dto.ItemID {
-			notFound = false
-			if i.Status != order.OI_PREPARED && i.Status != order.OI_CANCEL {
-				if err := o.orderRepo.UpdateOrderItem(ctx, i.Id, order.OI_PREPARED); err != nil {
-					return nil, err
-				}
-				i.Status = order.OI_PREPARED
-			} else {
-				return nil, errors.ErrNotChange
-			}
-		}
-
-		if i.Status == order.OI_PREPARED {
-			itemPreparedCount++
-		}
+	default:
+		return errors.OrderCannotCancel
 	}
 
-	if notFound {
-		return nil, errors.ErrNotFoundRecord
+	mess := msgDTO.OrderStatusMessage{
+		OrderID: dao.OrderID,
+		Status:  order.ORDER_CANCEL_BY_USER,
 	}
 
-	if orderDAO.Status == order.ORDER_CREATED {
-		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_PENDING); err != nil {
-			return nil, err
-		}
+	if err := o.publisher.SendOrderCancelMessage(&mess); err != nil {
+		return err
 	}
 
-	if len(orderDAO.OrderItem) == itemPreparedCount {
-		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_DELIVERY); err != nil {
-			return nil, err
-		}
-	}
-
-	resp := store.UpdateOrderItemResponse{
-		OrderID: dto.OrderID,
-		ItemID:  dto.ItemID,
-		Status:  order.OI_PREPARED,
-	}
-
-	return &resp, nil
+	return nil
 }
 
-func (o orderCommandService) CancelOrderItem(ctx context.Context, dto *store.UpdateOrderItemRequest) (*store.UpdateOrderItemResponse, error) {
-	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderID)
+func (o orderCommandService) AdminCancelOrder(ctx context.Context, dto *orderDTO.CancelOrderRequest) error {
+	dao, err := o.orderRepo.FindByID(ctx, dto.OrderID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	notFound := true
-
-	for _, i := range orderDAO.OrderItem {
-
-		if i.StoreID != dto.StoreId {
-			continue
-		}
-
-		if i.Status != order.OI_PREPARED && i.Id == dto.ItemID {
-			notFound = false
-			if err := o.orderRepo.UpdateOrderItem(ctx, i.Id, order.ORDER_CANCEL); err != nil {
-				return nil, err
-			}
-			i.Status = order.OI_PREPARED
-		}
-
+	if err := o.orderRepo.UpdateStatus(ctx, dao.OrderID, order.ORDER_CANCEL_BY_ADMIN,
+		fmt.Sprintf("Đơn hàng bị hủy do yêu cầu của quản trị viên:%v", dto.Message)); err != nil {
+		return err
 	}
 
-	if notFound {
-		return nil, errors.ErrNotFoundRecord
+	mess := msgDTO.OrderStatusMessage{
+		OrderID: dao.OrderID,
+		Status:  order.ORDER_CANCEL_BY_ADMIN,
 	}
 
-	if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_CANCEL,
-		"Đơn hàng bị hủy do nhà cung cấp không thể chuẩn bị sản phẩm"); err != nil {
-		return nil, err
+	if err := o.publisher.SendOrderCancelMessage(&mess); err != nil {
+		return err
 	}
 
-	resp := store.UpdateOrderItemResponse{
-		OrderID: dto.OrderID,
-		ItemID:  dto.ItemID,
-		Status:  order.ORDER_CANCEL,
-	}
-
-	return &resp, nil
+	return nil
 }
 
 func (o orderCommandService) UpdateOrder(ctx context.Context, dto *orderDTO.UpdateOrderRequest) error {

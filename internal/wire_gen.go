@@ -65,8 +65,8 @@ func New() (*Server, error) {
 	authenticationMiddleware := auth.NewAuthMiddleware(service, storeservService, deliveryservService, configConfig)
 	middlewareMiddleware := middleware.NewMiddleware(authenticationMiddleware)
 	orderRouter := router.NewOrderRouter(orderApiHandler, orderStatisticApiHandler, middlewareMiddleware)
-	orderTransactionSubscriber := worker.NewOrderTransactionSubscriber(configConfig, connection, orderCommandUsecase)
-	server := NewServer(configConfig, orderRouter, orderTransactionSubscriber)
+	purchaseReplySubscriber := worker.NewPurchaseReplySubscriber(configConfig, connection, orderCommandUsecase)
+	server := NewServer(configConfig, orderRouter, purchaseReplySubscriber)
 	return server, nil
 }
 
@@ -75,13 +75,13 @@ func New() (*Server, error) {
 type Server struct {
 	app       *fiber.App
 	cfg       *config.Config
-	orderSubs *worker.OrderTransactionSubscriber
+	orderSubs *worker.PurchaseReplySubscriber
 }
 
 func NewServer(
 	cfg *config.Config,
 	orderRouter router.OrderRouter,
-	orderSubs *worker.OrderTransactionSubscriber) *Server {
+	orderSubs *worker.PurchaseReplySubscriber) *Server {
 
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  cfg.Server.ReadTimeout,
@@ -102,7 +102,7 @@ func NewServer(
 			Message string `json:"message"`
 			Version string `json:"version"`
 		}{
-			Message: "Order rest-api was developed by TienDat",
+			Message: "the orders service was developed by tdat.it",
 			Version: "v2.0.0",
 		}
 		return ctx.JSON(s)
@@ -128,6 +128,6 @@ func (serv Server) Config() *config.Config {
 	return serv.cfg
 }
 
-func (serv Server) OrderTransactionSubscriber() *worker.OrderTransactionSubscriber {
+func (serv Server) OrderTransactionSubscriber() *worker.PurchaseReplySubscriber {
 	return serv.orderSubs
 }
