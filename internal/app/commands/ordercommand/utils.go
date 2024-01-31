@@ -40,9 +40,23 @@ func MappingDataToMessage(dao *order.Order, cartIds []string) *msgDTO.OrderMessa
 		log.Error(err)
 		return nil
 	}
+	//assign user request
+	orderMsg.UserRequest.UserId = dao.UserId
+	orderMsg.UserRequest.Username = dao.Username
 
+	//assign address data
 	orderMsg.Address.AddressId = dao.Delivery.AddressId
+	orderMsg.Address.AddressDetail = dao.Delivery.ShippingAddress
+	orderMsg.Address.Name = dao.Delivery.ShippingName
+	orderMsg.Address.Phone = dao.Delivery.ShippingPhone
+
+	//assign delivery data
 	orderMsg.Delivery.DeliveryId = dao.Delivery.DeliveryId
+	orderMsg.Delivery.Cost = dao.Delivery.Cost
+	orderMsg.Delivery.ReceivingDate = dao.Delivery.ReceivingDate
+	orderMsg.Delivery.Name = dao.Delivery.DeliveryName
+
+	//assign order store data
 	orderMsg.StoreID = dao.StoreId
 	//order detail
 	var orderItems []msgDTO.OrderItemsMessage

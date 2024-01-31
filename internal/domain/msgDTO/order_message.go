@@ -1,5 +1,7 @@
 package msgDTO
 
+import "time"
+
 type OrderStatusMessage struct {
 	Status  int    `json:"status"`
 	OrderID string `json:"order_id"`
@@ -46,12 +48,15 @@ type ProductItem struct {
 }
 
 type OrderAddress struct {
-	AddressId string `json:"address_id"`
+	AddressId     string `json:"address_id"`
+	Name          string `json:"name"`
+	Phone         string `json:"phone"`
+	AddressDetail string `json:"address_detail"`
 }
 
 type Delivery struct {
-	DeliveryId    string `json:"delivery_id" validate:"required"`
-	Name          string `json:"name" validate:"required"`
-	Cost          int    `json:"cost" validate:"required"`
-	ReceivingDate string `json:"receiving_date" validate:"required"`
+	DeliveryId    string    `json:"delivery_id" validate:"required"`
+	Name          string    `json:"name" validate:"required"`
+	Cost          int       `json:"cost" validate:"required"`
+	ReceivingDate time.Time `json:"receiving_date" validate:"required"`
 }

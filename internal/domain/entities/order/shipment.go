@@ -31,3 +31,8 @@ func ParseStringToDate(date string) (*time.Time, error) {
 
 	return &val, nil
 }
+
+func ParseDateToString(date time.Time) string {
+	formattedDate := date.Format("2006-01-02")
+	return formattedDate
+}
