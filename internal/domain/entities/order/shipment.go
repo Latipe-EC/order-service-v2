@@ -15,7 +15,7 @@ type DeliveryOrder struct {
 	ReceivingDate   time.Time `json:"receiving_date" gorm:"not null;type:date"`
 	UpdatedAt       time.Time `gorm:"autoUpdateTime;type:datetime(6)" json:"updated_at"`
 	CreatedAt       time.Time `gorm:"autoCreateTime;type:datetime(6)" json:"created_at"`
-	OrderID         int       `gorm:"not null;type:bigint" json:"order_id"`
+	OrderID         string    `gorm:"not null;type:char(16)" json:"order_id"`
 	Order           *Order    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 

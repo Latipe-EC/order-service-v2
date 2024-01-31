@@ -73,7 +73,15 @@ AdapterService:
     InternalKey:
 
 GRPC:
-  VoucherConnection: localhost:6010
-  DeliveryConnection: localhost:6005
-  UserConnection: localhost:6080
-  ProductConnection: localhost:6090
+  DeliveryServiceGrpc:
+    Connection: localhost:6005
+    ApiKey: aeceaec7eca63c4187e2ef406f4263d22b89f408
+  VoucherServiceGrpc:
+    Connection: localhost:6010
+    ApiKey: 410c25c9a9cf2c18866604919c4298c007114cb8
+  ProductServiceGrpc:
+    Connection: localhost:9090
+    ApiKey: fsf1AQOu6TVn+gNyjv22v9Cu/lW3HDF8QsSweKl5R6Me+rDO2Twyqkdbr8lZpRXkPL0MAcMA8AtgTrJAmSV5yA==
+  UserServiceGrpc:
+    Connection: localhost:9362
+    ApiKey: L95WcifFRUEREbSbrKHgyTFVd64YubZYSRo/zjW2PcXPhLeuv8SS4OYlOF8VfGdlXuzzDFBnfMfCGnjFgYN8Iw==

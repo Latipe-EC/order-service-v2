@@ -18,86 +18,86 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// DeliveryServiceGRPCClient is the client API for DeliveryServiceGRPC service.
+// DeliveryServiceClient is the client API for DeliveryService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type DeliveryServiceGRPCClient interface {
+type DeliveryServiceClient interface {
 	CalculateShippingCost(ctx context.Context, in *GetShippingCostRequest, opts ...grpc.CallOption) (*GetShippingCostResponse, error)
 }
 
-type deliveryServiceGRPCClient struct {
+type deliveryServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewDeliveryServiceGRPCClient(cc grpc.ClientConnInterface) DeliveryServiceGRPCClient {
-	return &deliveryServiceGRPCClient{cc}
+func NewDeliveryServiceClient(cc grpc.ClientConnInterface) DeliveryServiceClient {
+	return &deliveryServiceClient{cc}
 }
 
-func (c *deliveryServiceGRPCClient) CalculateShippingCost(ctx context.Context, in *GetShippingCostRequest, opts ...grpc.CallOption) (*GetShippingCostResponse, error) {
+func (c *deliveryServiceClient) CalculateShippingCost(ctx context.Context, in *GetShippingCostRequest, opts ...grpc.CallOption) (*GetShippingCostResponse, error) {
 	out := new(GetShippingCostResponse)
-	err := c.cc.Invoke(ctx, "/DeliveryServiceGRPC/CalculateShippingCost", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/DeliveryService/CalculateShippingCost", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// DeliveryServiceGRPCServer is the server API for DeliveryServiceGRPC service.
-// All implementations must embed UnimplementedDeliveryServiceGRPCServer
+// DeliveryServiceServer is the server API for DeliveryService service.
+// All implementations must embed UnimplementedDeliveryServiceServer
 // for forward compatibility
-type DeliveryServiceGRPCServer interface {
+type DeliveryServiceServer interface {
 	CalculateShippingCost(context.Context, *GetShippingCostRequest) (*GetShippingCostResponse, error)
-	mustEmbedUnimplementedDeliveryServiceGRPCServer()
+	mustEmbedUnimplementedDeliveryServiceServer()
 }
 
-// UnimplementedDeliveryServiceGRPCServer must be embedded to have forward compatible implementations.
-type UnimplementedDeliveryServiceGRPCServer struct {
+// UnimplementedDeliveryServiceServer must be embedded to have forward compatible implementations.
+type UnimplementedDeliveryServiceServer struct {
 }
 
-func (UnimplementedDeliveryServiceGRPCServer) CalculateShippingCost(context.Context, *GetShippingCostRequest) (*GetShippingCostResponse, error) {
+func (UnimplementedDeliveryServiceServer) CalculateShippingCost(context.Context, *GetShippingCostRequest) (*GetShippingCostResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CalculateShippingCost not implemented")
 }
-func (UnimplementedDeliveryServiceGRPCServer) mustEmbedUnimplementedDeliveryServiceGRPCServer() {}
+func (UnimplementedDeliveryServiceServer) mustEmbedUnimplementedDeliveryServiceServer() {}
 
-// UnsafeDeliveryServiceGRPCServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to DeliveryServiceGRPCServer will
+// UnsafeDeliveryServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to DeliveryServiceServer will
 // result in compilation errors.
-type UnsafeDeliveryServiceGRPCServer interface {
-	mustEmbedUnimplementedDeliveryServiceGRPCServer()
+type UnsafeDeliveryServiceServer interface {
+	mustEmbedUnimplementedDeliveryServiceServer()
 }
 
-func RegisterDeliveryServiceGRPCServer(s grpc.ServiceRegistrar, srv DeliveryServiceGRPCServer) {
-	s.RegisterService(&DeliveryServiceGRPC_ServiceDesc, srv)
+func RegisterDeliveryServiceServer(s grpc.ServiceRegistrar, srv DeliveryServiceServer) {
+	s.RegisterService(&DeliveryService_ServiceDesc, srv)
 }
 
-func _DeliveryServiceGRPC_CalculateShippingCost_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _DeliveryService_CalculateShippingCost_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetShippingCostRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DeliveryServiceGRPCServer).CalculateShippingCost(ctx, in)
+		return srv.(DeliveryServiceServer).CalculateShippingCost(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/DeliveryServiceGRPC/CalculateShippingCost",
+		FullMethod: "/DeliveryService/CalculateShippingCost",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DeliveryServiceGRPCServer).CalculateShippingCost(ctx, req.(*GetShippingCostRequest))
+		return srv.(DeliveryServiceServer).CalculateShippingCost(ctx, req.(*GetShippingCostRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// DeliveryServiceGRPC_ServiceDesc is the grpc.ServiceDesc for DeliveryServiceGRPC service.
+// DeliveryService_ServiceDesc is the grpc.ServiceDesc for DeliveryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var DeliveryServiceGRPC_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "DeliveryServiceGRPC",
-	HandlerType: (*DeliveryServiceGRPCServer)(nil),
+var DeliveryService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "DeliveryService",
+	HandlerType: (*DeliveryServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "CalculateShippingCost",
-			Handler:    _DeliveryServiceGRPC_CalculateShippingCost_Handler,
+			Handler:    _DeliveryService_CalculateShippingCost_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

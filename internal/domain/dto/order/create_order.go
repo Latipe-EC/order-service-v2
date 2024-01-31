@@ -3,19 +3,19 @@ package order
 import "time"
 
 type CreateOrderRequest struct {
-	Header      BaseHeader
-	UserRequest UserRequest
-	Address     OrderAddress `json:"address" validate:"required"`
-	StoreOrders []StoreOrder `json:"store_orders"`
+	Header        BaseHeader
+	UserRequest   UserRequest
+	PaymentMethod int          `json:"payment_method" validate:"required"`
+	Address       OrderAddress `json:"address" validate:"required"`
+	StoreOrders   []StoreOrder `json:"store_orders"`
 }
 
 type StoreOrder struct {
-	StoreID       string       `json:"store_id" validate:"required"`
-	PaymentMethod int          `json:"payment_method" validate:"required"`
-	VoucherCode   []string     `json:"vouchers"`
-	Delivery      Delivery     `json:"delivery" validate:"required"`
-	Items         []OrderItems `json:"items" validate:"required"`
-	CartIds       []string     `json:"cart_ids"`
+	StoreID     string       `json:"store_id" validate:"required"`
+	VoucherCode []string     `json:"vouchers"`
+	Delivery    Delivery     `json:"delivery" validate:"required"`
+	Items       []OrderItems `json:"order_items" validate:"required"`
+	CartIds     []string     `json:"cart_ids"`
 }
 
 type CreateOrderResponse struct {

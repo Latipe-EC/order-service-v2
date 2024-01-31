@@ -1,13 +1,17 @@
 syntax = "proto3";
 
-option go_package="/usergrpc";
+option go_package = "/usergrpc";
+option java_multiple_files = true;
+option java_package = "latipe.user.grpc";
+option java_outer_classname = "UserProto";
 
-service UserServiceGRPC{
+service UserService{
   rpc GetAddressDetail(GetDetailAddressRequest) returns(GetDetailAddressResponse) {}
 }
 
 message GetDetailAddressRequest {
   string addressId = 1;
+  string userId = 2;
 }
 
 message GetDetailAddressResponse {

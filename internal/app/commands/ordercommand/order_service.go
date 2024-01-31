@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/gofiber/fiber/v2/log"
-	"github.com/google/uuid"
 	"latipe-order-service-v2/config"
 	"latipe-order-service-v2/internal/app/queries/orderquery"
 	"latipe-order-service-v2/internal/common/errors"
@@ -33,16 +32,16 @@ type orderCommandService struct {
 	cacheEngine *redis.CacheEngine
 	publisher   *publishMsg.PublisherTransactionMessage
 	//grpc client
-	voucherGrpc  vouchergrpc.VoucherServiceGRPCClient
-	productGrpc  productgrpc.ProductServiceGRPCClient
-	deliveryGrpc deliverygrpc.DeliveryServiceGRPCClient
-	userGrpc     usergrpc.UserServiceGRPCClient
+	voucherGrpc  vouchergrpc.VoucherServiceClient
+	productGrpc  productgrpc.ProductServiceClient
+	deliveryGrpc deliverygrpc.DeliveryServiceClient
+	userGrpc     usergrpc.UserServiceClient
 }
 
 func NewOrderCommmandService(cfg *config.Config, orderRepo order.Repository,
 	cacheEngine *redis.CacheEngine, publisher *publishMsg.PublisherTransactionMessage,
-	voucherGrpc vouchergrpc.VoucherServiceGRPCClient, productGrpc productgrpc.ProductServiceGRPCClient,
-	deliveryGrpc deliverygrpc.DeliveryServiceGRPCClient, userGrpc usergrpc.UserServiceGRPCClient) OrderCommandUsecase {
+	voucherGrpc vouchergrpc.VoucherServiceClient, productGrpc productgrpc.ProductServiceClient,
+	deliveryGrpc deliverygrpc.DeliveryServiceClient, userGrpc usergrpc.UserServiceClient) OrderCommandUsecase {
 	return orderCommandService{
 		orderRepo:    orderRepo,
 		cacheEngine:  cacheEngine,
@@ -55,16 +54,9 @@ func NewOrderCommmandService(cfg *config.Config, orderRepo order.Repository,
 	}
 }
 
-func (o orderCommandService) genOrderKey(userId string) string {
-	keyGen := strings.ReplaceAll(uuid.NewString(), "-", "")[:10]
-	key := fmt.Sprintf("%v%v%v", o.cfg.Server.KeyID, userId[:4], keyGen)
-
-	return key
-}
-
 func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.CreateOrderRequest) (*orderDTO.CreateOrderResponse, error) {
 
-	userReq := usergrpc.GetDetailAddressRequest{AddressId: dto.Address.AddressId}
+	userReq := usergrpc.GetDetailAddressRequest{AddressId: dto.Address.AddressId, UserId: dto.UserRequest.UserId}
 	address, err := o.userGrpc.GetAddressDetail(ctx, &userReq)
 	if err != nil {
 		return nil, err
@@ -78,12 +70,9 @@ func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.Crea
 
 	for _, i := range dto.StoreOrders {
 
-		productReq := productgrpc.GetPurchaseProductRequest{}
-		if err := mapper.BindingStructGrpc(i, &productReq); err != nil {
-			return nil, err
-		}
+		productReq := MappingToProductRequest(i)
 
-		products, err := o.productGrpc.CheckInStock(ctx, &productReq)
+		products, err := o.productGrpc.CheckInStock(ctx, productReq)
 		if err != nil {
 			return nil, err
 		}
@@ -153,6 +142,7 @@ func (o orderCommandService) saveOrderIntoDatabase(ctx context.Context, dto *ord
 	deli *deliverygrpc.GetShippingCostResponse, productItems *productgrpc.GetPurchaseItemResponse) (*order.Order, error) {
 
 	orderDAO := order.Order{}
+	orderDAO.OrderID = GenKeyOrder(dto.UserRequest.UserId)
 	orderDAO.Username = dto.UserRequest.Username
 	orderDAO.UserId = dto.UserRequest.UserId
 	orderDAO.StoreId = productItems.StoreId
@@ -163,6 +153,7 @@ func (o orderCommandService) saveOrderIntoDatabase(ctx context.Context, dto *ord
 	}
 
 	orderDAO.ShippingCost = int(deli.Cost)
+	orderDAO.SubTotal = int(productItems.TotalPrice)
 
 	var orderItems []*order.OrderItem
 	for _, item := range productItems.Items {
@@ -175,6 +166,7 @@ func (o orderCommandService) saveOrderIntoDatabase(ctx context.Context, dto *ord
 			Price:       int(item.Price),
 			NetPrice:    int(item.PromotionalPrice),
 			ProdImg:     item.Image,
+			Order:       &orderDAO,
 		}
 		//calculate subtotal of item
 		if i.NetPrice != 0 {
@@ -239,7 +231,7 @@ func (o orderCommandService) saveOrderIntoDatabase(ctx context.Context, dto *ord
 	}
 	orderDAO.Delivery = &shippingData
 
-	orderDAO.PaymentMethod = storeOrder.PaymentMethod
+	orderDAO.PaymentMethod = dto.PaymentMethod
 	orderDAO.Status = order.ORDER_SYSTEM_PROCESS
 	//create log
 	var logs []*order.OrderStatusLog

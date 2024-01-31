@@ -39,12 +39,31 @@ type Server struct {
 	MaxCountRequest     int           // max count of connections
 	ExpirationLimitTime time.Duration //  expiration time of the limit
 }
+
 type GRPC struct {
-	DeliveryConnection string
-	VoucherConnection  string
-	ProductConnection  string
-	UserConnection     string
+	DeliveryServiceGrpc DeliveryServiceGrpc
+	VoucherServiceGrpc  VoucherServiceGrpc
+	ProductServiceGrpc  ProductServiceGrpc
+	UserServiceGrpc     UserServiceGrpc
 }
+
+type DeliveryServiceGrpc struct {
+	Connection string
+	APIKey     string
+}
+type VoucherServiceGrpc struct {
+	Connection string
+	APIKey     string
+}
+type ProductServiceGrpc struct {
+	Connection string
+	APIKey     string
+}
+type UserServiceGrpc struct {
+	Connection string
+	APIKey     string
+}
+
 type DB struct {
 	Mysql Mysql
 }

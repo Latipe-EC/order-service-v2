@@ -18,86 +18,86 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// UserServiceGRPCClient is the client API for UserServiceGRPC service.
+// UserServiceClient is the client API for UserService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type UserServiceGRPCClient interface {
+type UserServiceClient interface {
 	GetAddressDetail(ctx context.Context, in *GetDetailAddressRequest, opts ...grpc.CallOption) (*GetDetailAddressResponse, error)
 }
 
-type userServiceGRPCClient struct {
+type userServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewUserServiceGRPCClient(cc grpc.ClientConnInterface) UserServiceGRPCClient {
-	return &userServiceGRPCClient{cc}
+func NewUserServiceClient(cc grpc.ClientConnInterface) UserServiceClient {
+	return &userServiceClient{cc}
 }
 
-func (c *userServiceGRPCClient) GetAddressDetail(ctx context.Context, in *GetDetailAddressRequest, opts ...grpc.CallOption) (*GetDetailAddressResponse, error) {
+func (c *userServiceClient) GetAddressDetail(ctx context.Context, in *GetDetailAddressRequest, opts ...grpc.CallOption) (*GetDetailAddressResponse, error) {
 	out := new(GetDetailAddressResponse)
-	err := c.cc.Invoke(ctx, "/UserServiceGRPC/GetAddressDetail", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/UserService/GetAddressDetail", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// UserServiceGRPCServer is the server API for UserServiceGRPC service.
-// All implementations must embed UnimplementedUserServiceGRPCServer
+// UserServiceServer is the server API for UserService service.
+// All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility
-type UserServiceGRPCServer interface {
+type UserServiceServer interface {
 	GetAddressDetail(context.Context, *GetDetailAddressRequest) (*GetDetailAddressResponse, error)
-	mustEmbedUnimplementedUserServiceGRPCServer()
+	mustEmbedUnimplementedUserServiceServer()
 }
 
-// UnimplementedUserServiceGRPCServer must be embedded to have forward compatible implementations.
-type UnimplementedUserServiceGRPCServer struct {
+// UnimplementedUserServiceServer must be embedded to have forward compatible implementations.
+type UnimplementedUserServiceServer struct {
 }
 
-func (UnimplementedUserServiceGRPCServer) GetAddressDetail(context.Context, *GetDetailAddressRequest) (*GetDetailAddressResponse, error) {
+func (UnimplementedUserServiceServer) GetAddressDetail(context.Context, *GetDetailAddressRequest) (*GetDetailAddressResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAddressDetail not implemented")
 }
-func (UnimplementedUserServiceGRPCServer) mustEmbedUnimplementedUserServiceGRPCServer() {}
+func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 
-// UnsafeUserServiceGRPCServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to UserServiceGRPCServer will
+// UnsafeUserServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to UserServiceServer will
 // result in compilation errors.
-type UnsafeUserServiceGRPCServer interface {
-	mustEmbedUnimplementedUserServiceGRPCServer()
+type UnsafeUserServiceServer interface {
+	mustEmbedUnimplementedUserServiceServer()
 }
 
-func RegisterUserServiceGRPCServer(s grpc.ServiceRegistrar, srv UserServiceGRPCServer) {
-	s.RegisterService(&UserServiceGRPC_ServiceDesc, srv)
+func RegisterUserServiceServer(s grpc.ServiceRegistrar, srv UserServiceServer) {
+	s.RegisterService(&UserService_ServiceDesc, srv)
 }
 
-func _UserServiceGRPC_GetAddressDetail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _UserService_GetAddressDetail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetDetailAddressRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UserServiceGRPCServer).GetAddressDetail(ctx, in)
+		return srv.(UserServiceServer).GetAddressDetail(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/UserServiceGRPC/GetAddressDetail",
+		FullMethod: "/UserService/GetAddressDetail",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceGRPCServer).GetAddressDetail(ctx, req.(*GetDetailAddressRequest))
+		return srv.(UserServiceServer).GetAddressDetail(ctx, req.(*GetDetailAddressRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// UserServiceGRPC_ServiceDesc is the grpc.ServiceDesc for UserServiceGRPC service.
+// UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var UserServiceGRPC_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "UserServiceGRPC",
-	HandlerType: (*UserServiceGRPCServer)(nil),
+var UserService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "UserService",
+	HandlerType: (*UserServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "GetAddressDetail",
-			Handler:    _UserServiceGRPC_GetAddressDetail_Handler,
+			Handler:    _UserService_GetAddressDetail_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

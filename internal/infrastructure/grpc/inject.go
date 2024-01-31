@@ -9,8 +9,8 @@ import (
 )
 
 var Set = wire.NewSet(
-	vouchergrpc.NewVoucherClientGrpcConnection,
-	productgrpc.NewProductGrpcClientConnection,
-	deliverygrpc.NewDeliveryClientGrpcConnection,
-	usergrpc.NewUserServiceClientConnection,
+	vouchergrpc.NewVoucherClientGrpcImpl,
+	productgrpc.NewProductGrpcClientImpl,
+	deliverygrpc.NewDeliveryServiceGRPCClientImpl,
+	usergrpc.NewUserServiceClientGRPCImpl,
 )

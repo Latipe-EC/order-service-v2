@@ -2,7 +2,7 @@ syntax = "proto3";
 
 option go_package = "deliverygrpc/";
 
-service DeliveryServiceGRPC{
+service DeliveryService{
   rpc CalculateShippingCost(GetShippingCostRequest) returns (GetShippingCostResponse){}
 }
 

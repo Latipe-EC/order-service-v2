@@ -219,7 +219,7 @@ func (g GormRepository) FindOrderLogByOrderId(ctx context.Context, orderId strin
 
 func (g GormRepository) Save(ctx context.Context, dao *entity.Order) error {
 	result := g.client.Exec(func(tx *gormF.DB) error {
-		return tx.Model(&entity.Order{}).Create(&dao).Error
+		return tx.Create(&dao).Error
 	}, ctx)
 
 	return result
