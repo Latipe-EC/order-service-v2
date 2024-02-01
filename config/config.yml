@@ -80,7 +80,7 @@ GRPC:
     Connection: localhost:6010
     ApiKey: 410c25c9a9cf2c18866604919c4298c007114cb8
   ProductServiceGrpc:
-    Connection: localhost:9090
+    Connection: localhost:9645
     ApiKey: fsf1AQOu6TVn+gNyjv22v9Cu/lW3HDF8QsSweKl5R6Me+rDO2Twyqkdbr8lZpRXkPL0MAcMA8AtgTrJAmSV5yA==
   UserServiceGrpc:
     Connection: localhost:9362

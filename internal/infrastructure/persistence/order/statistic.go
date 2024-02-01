@@ -35,7 +35,7 @@ func (g GormRepository) StoreCountingOrder(ctx context.Context, storeId string) 
 func (g GormRepository) DeliveryCountingOrder(ctx context.Context, deliveryId string) (int, error) {
 	var count int64
 	result := g.client.Exec(func(tx *gormF.DB) error {
-		return tx.Model(&entity.Order{}).
+		return tx.Model(&entity.DeliveryOrder{}).
 			Where("delivery_id=?", deliveryId).
 			Count(&count).Error
 	}, ctx)

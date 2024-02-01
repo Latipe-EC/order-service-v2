@@ -262,6 +262,10 @@ func (o orderCommandService) StoreUpdateOrderStatus(ctx context.Context, dto *st
 		return errors.ErrNotFoundRecord
 	}
 
+	if orderDAO.Status != order.ORDER_CREATED {
+		return errors.OrderStatusNotValid
+	}
+
 	switch dto.Status {
 	case order.ORDER_PREPARED:
 		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_PREPARED); err != nil {

@@ -52,7 +52,7 @@ func (o orderQueryService) StoreCountingOrder(ctx context.Context, dto *orderDTO
 }
 
 func (o orderQueryService) DeliveryCountingOrder(ctx context.Context, dto *orderDTO.CountingOrderAmountRequest) (*orderDTO.CountingOrderAmountResponse, error) {
-	count, err := o.orderRepo.StoreCountingOrder(ctx, dto.OwnerID)
+	count, err := o.orderRepo.DeliveryCountingOrder(ctx, dto.OwnerID)
 	if err != nil {
 		return nil, err
 	}
@@ -308,8 +308,11 @@ func (o orderQueryService) ViewDetailStoreOrder(ctx context.Context, dto *store.
 		return nil, errors.ErrNotFoundRecord
 	}
 
-	orderResp.CommissionDetail.SystemFee = orderDAO.OrderCommission.SystemFee
-	orderResp.CommissionDetail.AmountReceived = orderDAO.OrderCommission.AmountReceived
+	if orderDAO.OrderCommission != nil {
+		orderResp.CommissionDetail.SystemFee = orderDAO.OrderCommission.SystemFee
+		orderResp.CommissionDetail.AmountReceived = orderDAO.OrderCommission.AmountReceived
+	}
+
 	orderResp.StoreOrderAmount = storeAmount
 	orderResp.OrderItems = items
 
