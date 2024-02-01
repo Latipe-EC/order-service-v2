@@ -12,7 +12,9 @@ import (
 	"strings"
 )
 
-func MappingToProductRequest(dto reqDTO.StoreOrder) *productgrpc.GetPurchaseProductRequest {
+func MappingToProductRequest(dto reqDTO.StoreOrder) (*productgrpc.GetPurchaseProductRequest, map[string]int) {
+
+	itemMap := make(map[string]int)
 	req := productgrpc.GetPurchaseProductRequest{
 		StoreId: dto.StoreID,
 	}
@@ -20,9 +22,15 @@ func MappingToProductRequest(dto reqDTO.StoreOrder) *productgrpc.GetPurchaseProd
 
 	for _, i := range dto.Items {
 		item := productgrpc.GetPurchaseItemRequest{
+
 			ProductId: i.ProductId,
 			OptionId:  i.OptionId,
 			Quantity:  int32(i.Quantity),
+		}
+		if i.OptionId != "" {
+			itemMap[i.OptionId] = i.Quantity
+		} else {
+			itemMap[i.ProductId] = i.Quantity
 		}
 
 		items = append(items, &item)
@@ -30,9 +38,16 @@ func MappingToProductRequest(dto reqDTO.StoreOrder) *productgrpc.GetPurchaseProd
 
 	req.Items = items
 
-	return &req
+	return &req, itemMap
 }
 
+func GetQuantityItems(productId string, optionId string, item map[string]int) int {
+	if optionId != "" {
+		return item[optionId]
+	} else {
+		return item[productId]
+	}
+}
 func MappingDataToMessage(dao *order.Order, cartIds []string) *msgDTO.OrderMessage {
 	orderMsg := msgDTO.OrderMessage{}
 	dao.OrderStatusLog = nil

@@ -249,7 +249,7 @@ func (g GormRepository) UpdateStatus(ctx context.Context, orderID string, status
 	result := g.client.Exec(func(tx *gormF.DB) error {
 		return tx.Transaction(func(tx *gormF.DB) error {
 			if err := tx.Model(&entity.Order{}).
-				Where("id = ?", orderID).Update("status", status).Error; err != nil {
+				Where("order_id = ?", orderID).Update("status", status).Error; err != nil {
 				return err
 			}
 

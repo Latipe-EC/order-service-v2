@@ -45,7 +45,7 @@ func (mq PurchaseReplySubscriber) ListenOrderEventQueue(wg *sync.WaitGroup) {
 
 	// create queue
 	q, err := channel.QueueDeclare(
-		"",
+		"transaction_reply",
 		true,
 		false,
 		false,

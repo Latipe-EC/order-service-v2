@@ -70,7 +70,7 @@ func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.Crea
 
 	for _, i := range dto.StoreOrders {
 
-		productReq := MappingToProductRequest(i)
+		productReq, itemMap := MappingToProductRequest(i)
 
 		products, err := o.productGrpc.CheckInStock(ctx, productReq)
 		if err != nil {
@@ -89,7 +89,7 @@ func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.Crea
 		}
 
 		//init order data
-		orderData, err := o.saveOrderIntoDatabase(ctx, dto, &i, address, shippingDetail, products)
+		orderData, err := o.saveOrderIntoDatabase(ctx, dto, &i, address, shippingDetail, products, itemMap)
 		if err != nil {
 			log.Error(err)
 			continue
@@ -138,8 +138,8 @@ func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.Crea
 }
 
 func (o orderCommandService) saveOrderIntoDatabase(ctx context.Context, dto *orderDTO.CreateOrderRequest,
-	storeOrder *orderDTO.StoreOrder, address *usergrpc.GetDetailAddressResponse,
-	deli *deliverygrpc.GetShippingCostResponse, productItems *productgrpc.GetPurchaseItemResponse) (*order.Order, error) {
+	storeOrder *orderDTO.StoreOrder, address *usergrpc.GetDetailAddressResponse, deli *deliverygrpc.GetShippingCostResponse,
+	productItems *productgrpc.GetPurchaseItemResponse, itemMap map[string]int) (*order.Order, error) {
 
 	orderDAO := order.Order{}
 	orderDAO.OrderID = GenKeyOrder(dto.UserRequest.UserId)
@@ -153,7 +153,6 @@ func (o orderCommandService) saveOrderIntoDatabase(ctx context.Context, dto *ord
 	}
 
 	orderDAO.ShippingCost = int(deli.Cost)
-	orderDAO.SubTotal = int(productItems.TotalPrice)
 
 	var orderItems []*order.OrderItem
 	for _, item := range productItems.Items {
@@ -162,7 +161,7 @@ func (o orderCommandService) saveOrderIntoDatabase(ctx context.Context, dto *ord
 			ProductName: item.Name,
 			NameOption:  item.NameOption,
 			OptionID:    item.OptionId,
-			Quantity:    int(item.Quantity),
+			Quantity:    GetQuantityItems(item.ProductId, item.OptionId, itemMap),
 			Price:       int(item.Price),
 			NetPrice:    int(item.PromotionalPrice),
 			ProdImg:     item.Image,
@@ -174,6 +173,7 @@ func (o orderCommandService) saveOrderIntoDatabase(ctx context.Context, dto *ord
 		} else {
 			i.SubTotal = i.Price * i.Quantity
 		}
+		orderDAO.SubTotal += i.SubTotal
 		orderItems = append(orderItems, &i)
 	}
 	orderDAO.OrderItem = orderItems
@@ -346,45 +346,39 @@ func (o orderCommandService) UpdateStatusOrder(ctx context.Context, dto *orderDT
 }
 
 func (o orderCommandService) UpdateOrderStatusByReplyMessage(ctx context.Context, dto *msgDTO.OrderStatusMessage) error {
-
-	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderID)
-	if err != nil {
-		return err
-	}
-
 	switch dto.Status {
 	case msgDTO.ORDER_EVENT_COMMIT_SUCCESS:
-		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_CREATED,
+		if err := o.orderRepo.UpdateStatus(ctx, dto.OrderID, order.ORDER_CREATED,
 			"Đơn hàng được tạo thành công"); err != nil {
 			return err
 		}
 	case msgDTO.ORDER_EVENT_FAIL_BY_PRODUCT:
-		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_FAILED,
+		if err := o.orderRepo.UpdateStatus(ctx, dto.OrderID, order.ORDER_FAILED,
 			"Đơn hàng xử lý thất bại do lỗi sản phẩm"); err != nil {
 			return err
 		}
 	case msgDTO.ORDER_EVENT_FAIL_BY_PROMOTION:
-		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_FAILED,
+		if err := o.orderRepo.UpdateStatus(ctx, dto.OrderID, order.ORDER_FAILED,
 			"Đơn hàng xử lý thất bại do lỗi khuyến mãi"); err != nil {
 			return err
 		}
 	case msgDTO.ORDER_EVENT_FAIL_BY_DELIVERY:
-		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_FAILED,
+		if err := o.orderRepo.UpdateStatus(ctx, dto.OrderID, order.ORDER_FAILED,
 			"Đơn hàng xử lý thất bại do lỗi vận chuyển"); err != nil {
 			return err
 		}
 	case msgDTO.ORDER_EVENT_FAIL_BY_PAYMENT:
-		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_FAILED,
+		if err := o.orderRepo.UpdateStatus(ctx, dto.OrderID, order.ORDER_FAILED,
 			"Đơn hàng xử lý thất bại do lỗi thanh toán"); err != nil {
 			return err
 		}
 	case msgDTO.ORDER_EVENT_CANCEL:
-		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_FAILED,
+		if err := o.orderRepo.UpdateStatus(ctx, dto.OrderID, order.ORDER_FAILED,
 			"Đơn hàng bị hủy"); err != nil {
 			return err
 		}
 	case msgDTO.ORDER_EVENT_REFUND:
-		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_FAILED,
+		if err := o.orderRepo.UpdateStatus(ctx, dto.OrderID, order.ORDER_FAILED,
 			"Đơn hàng hoàn trả"); err != nil {
 			return err
 		}
