@@ -48,50 +48,52 @@ func GetQuantityItems(productId string, optionId string, item map[string]int) in
 		return item[productId]
 	}
 }
-func MappingDataToMessage(dao *order.Order, cartIds []string) *msgDTO.OrderMessage {
-	orderMsg := msgDTO.OrderMessage{}
-	dao.OrderStatusLog = nil
-	if err := mapper.Copy(&orderMsg, dao); err != nil {
-		log.Error(err)
-		return nil
-	}
-	//assign user request
-	orderMsg.UserRequest.UserId = dao.UserId
-	orderMsg.UserRequest.Username = dao.Username
+func MappingDataToMessage(daos []*order.Order, cartMap map[string][]string) *msgDTO.CreateOrderMessage {
+	orderMsg := msgDTO.CreateOrderMessage{}
 
-	//assign address data
-	orderMsg.Address.AddressId = dao.Delivery.AddressId
-	orderMsg.Address.AddressDetail = dao.Delivery.ShippingAddress
-	orderMsg.Address.Name = dao.Delivery.ShippingName
-	orderMsg.Address.Phone = dao.Delivery.ShippingPhone
+	orderMsg.UserRequest.UserId = daos[0].UserId
+	orderMsg.UserRequest.Username = daos[0].Username
+	orderMsg.Address.AddressId = daos[0].Delivery.AddressId
+	orderMsg.Address.AddressDetail = daos[0].Delivery.ShippingAddress
+	orderMsg.Address.Name = daos[0].Delivery.ShippingName
+	orderMsg.Address.Phone = daos[0].Delivery.ShippingPhone
 
-	//assign delivery data
-	orderMsg.Delivery.DeliveryId = dao.Delivery.DeliveryId
-	orderMsg.Delivery.Cost = dao.Delivery.Cost
-	orderMsg.Delivery.ReceivingDate = dao.Delivery.ReceivingDate
-	orderMsg.Delivery.Name = dao.Delivery.DeliveryName
-
-	//assign order store data
-	orderMsg.StoreID = dao.StoreId
-	//order detail
-	var orderItems []msgDTO.OrderItemsMessage
-	for _, i := range dao.OrderItem {
-		item := msgDTO.OrderItemsMessage{
-			ProductItem: msgDTO.ProductItem{
-				ProductID:   i.ProductID,
-				ProductName: i.ProductName,
-				NameOption:  i.NameOption,
-				OptionID:    i.OptionID,
-				Quantity:    i.Quantity,
-				Price:       i.Price,
-				NetPrice:    i.NetPrice,
-				Image:       i.ProdImg,
-			},
+	for _, i := range daos {
+		orderDetail := msgDTO.OrderDetail{}
+		if err := mapper.Copy(i, orderDetail); err != nil {
+			log.Error(err)
+			return nil
 		}
-		orderItems = append(orderItems, item)
+
+		//assign delivery data
+		orderDetail.Delivery.DeliveryId = i.Delivery.DeliveryId
+		orderDetail.Delivery.Cost = i.Delivery.Cost
+		orderDetail.Delivery.ReceivingDate = i.Delivery.ReceivingDate
+		orderDetail.Delivery.Name = i.Delivery.DeliveryName
+
+		//assign order store data
+		orderDetail.StoreID = i.StoreId
+		//order detail
+		var orderItems []msgDTO.OrderItemsMessage
+		for _, j := range i.OrderItem {
+			item := msgDTO.OrderItemsMessage{
+				ProductItem: msgDTO.ProductItem{
+					ProductID:   j.ProductID,
+					ProductName: j.ProductName,
+					NameOption:  j.NameOption,
+					OptionID:    j.OptionID,
+					Quantity:    j.Quantity,
+					Price:       j.Price,
+					NetPrice:    j.NetPrice,
+					Image:       j.ProdImg,
+				},
+			}
+			orderItems = append(orderItems, item)
+		}
+
+		orderDetail.OrderItems = orderItems
+		orderDetail.CartIds = cartMap[i.StoreId]
 	}
-	orderMsg.OrderItems = orderItems
-	orderMsg.CartIds = cartIds
 
 	return &orderMsg
 }

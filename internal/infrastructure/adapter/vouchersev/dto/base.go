@@ -5,12 +5,21 @@ type AuthorizationHeader struct {
 }
 
 const (
-	FREE_SHIP      = 1
-	DISCOUNT_ORDER = 2
+	FREE_SHIP        = 1
+	PAYMENT_DISCOUNT = 2
+	STORE_DISCOUNT   = 3
 
-	PENDING   = 0
-	ACTIVE    = 1
-	IN_ACTIVE = 2
+	PENDING  = 0
+	ACTIVE   = 1
+	INACTIVE = -1
+
+	VOUCHER_APPLY_SUCCESS = 1
+	VOUCHER_APPLY_FAILED  = -1
+
+	FIXED_DISCOUNT   = 0
+	PERCENT_DISCOUNT = 1
+
+	COD_METHOD = 1
 )
 
 type BaseResponse struct {

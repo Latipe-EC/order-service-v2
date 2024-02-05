@@ -7,8 +7,14 @@ type OrderStatusMessage struct {
 	OrderID string `json:"order_id"`
 }
 
-type OrderMessage struct {
-	UserRequest      UserRequest         `json:"user_request,omitempty"`
+type CreateOrderMessage struct {
+	UserRequest     UserRequest     `json:"user_request,omitempty"`
+	Address         OrderAddress    `json:"address,omitempty" validate:"required"`
+	CheckoutMessage CheckoutMessage `json:"checkout_data"`
+	OrderDetail     []OrderDetail   `json:"order_detail"`
+}
+
+type OrderDetail struct {
 	Status           int                 `json:"status"`
 	OrderID          string              `json:"order_id,omitempty"`
 	StoreID          string              `json:"store_id" validate:"required"`
@@ -19,7 +25,6 @@ type OrderMessage struct {
 	SubTotal         int                 `json:"sub_total,omitempty" validate:"required"`
 	PaymentMethod    int                 `json:"payment_method,omitempty" validate:"required"`
 	Vouchers         string              `json:"vouchers,omitempty"`
-	Address          OrderAddress        `json:"address,omitempty" validate:"required"`
 	Delivery         Delivery            `json:"delivery,omitempty" validate:"required"`
 	OrderItems       []OrderItemsMessage `json:"order_items,omitempty" validate:"required"`
 	CartIds          []string            `json:"cart_ids"`

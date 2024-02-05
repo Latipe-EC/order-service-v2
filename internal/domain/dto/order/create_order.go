@@ -1,27 +1,27 @@
 package order
 
-import "time"
+import (
+	"latipe-order-service-v2/internal/domain/msgDTO"
+)
 
 type CreateOrderRequest struct {
 	Header        BaseHeader
 	UserRequest   UserRequest
-	PaymentMethod int          `json:"payment_method" validate:"required"`
-	Address       OrderAddress `json:"address" validate:"required"`
-	StoreOrders   []StoreOrder `json:"store_orders"`
+	PaymentMethod int            `json:"payment_method" validate:"required"`
+	Address       OrderAddress   `json:"address" validate:"required"`
+	StoreOrders   []StoreOrder   `json:"store_orders"`
+	PromotionData *PromotionData `json:"promotion_data"`
 }
 
 type StoreOrder struct {
-	StoreID     string       `json:"store_id" validate:"required"`
-	VoucherCode []string     `json:"vouchers"`
-	Delivery    Delivery     `json:"delivery" validate:"required"`
-	Items       []OrderItems `json:"order_items" validate:"required"`
-	CartIds     []string     `json:"cart_ids"`
+	StoreID  string       `json:"store_id" validate:"required"`
+	Delivery Delivery     `json:"delivery" validate:"required"`
+	Items    []OrderItems `json:"order_items" validate:"required"`
+	CartIds  []string     `json:"cart_ids"`
 }
 
 type CreateOrderResponse struct {
-	UserOrder UserRequest `json:"user_order"`
-	OrderKeys []string    `json:"order_keys"`
-	CreatedAt time.Time   `json:"created_at"`
+	msgDTO.CheckoutMessage
 }
 
 type UserRequest struct {
@@ -43,4 +43,23 @@ type OrderAddress struct {
 
 type Delivery struct {
 	DeliveryId string `json:"delivery_id" validate:"required"`
+}
+
+type PromotionData struct {
+	FreeShippingVoucherInfo FreeShippingVoucherInfo `json:"free_shipping_voucher"`
+	PaymentVoucherInfo      PaymentVoucherInfo      `json:"payment_voucher"`
+	ShopVoucherInfo         []ShopVoucherInfo       `json:"shop_vouchers"`
+}
+
+type FreeShippingVoucherInfo struct {
+	VoucherCode string `json:"voucher_code"`
+}
+
+type PaymentVoucherInfo struct {
+	VoucherCode string `json:"voucher_code" validate:"required"`
+}
+
+type ShopVoucherInfo struct {
+	StoreId     string `json:"store_id" validate:"required"`
+	VoucherCode string `json:"voucher_code" validate:"required"`
 }

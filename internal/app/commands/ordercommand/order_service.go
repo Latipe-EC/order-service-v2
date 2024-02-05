@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gofiber/fiber/v2/log"
+	"github.com/google/uuid"
 	"latipe-order-service-v2/config"
 	"latipe-order-service-v2/internal/app/queries/orderquery"
 	"latipe-order-service-v2/internal/common/errors"
@@ -17,12 +18,9 @@ import (
 	productgrpc "latipe-order-service-v2/internal/infrastructure/grpc/productServ"
 	vouchergrpc "latipe-order-service-v2/internal/infrastructure/grpc/promotionServ"
 	usergrpc "latipe-order-service-v2/internal/infrastructure/grpc/userServ"
-	"latipe-order-service-v2/pkg/util/mapper"
-	"sync"
-	"time"
-
 	publishMsg "latipe-order-service-v2/internal/msgqueue"
 	"latipe-order-service-v2/pkg/cache/redis"
+	"latipe-order-service-v2/pkg/util/mapper"
 	"strings"
 )
 
@@ -55,18 +53,27 @@ func NewOrderCommmandService(cfg *config.Config, orderRepo order.Repository,
 }
 
 func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.CreateOrderRequest) (*orderDTO.CreateOrderResponse, error) {
-
 	userReq := usergrpc.GetDetailAddressRequest{AddressId: dto.Address.AddressId, UserId: dto.UserRequest.UserId}
 	address, err := o.userGrpc.GetAddressDetail(ctx, &userReq)
 	if err != nil {
 		return nil, err
 	}
 
+	shopVoucherMap := make(map[string]string)
+	cartMap := make(map[string][]string)
 	//get product data from product service
 	var orders []*order.Order
 
 	// Handle order group by store
-	var orderIDs []string
+	checkout := msgDTO.CheckoutMessage{
+		CheckoutID:    uuid.NewString(),
+		UserID:        dto.UserRequest.UserId,
+		PaymentMethod: dto.PaymentMethod,
+	}
+
+	for _, i := range dto.PromotionData.ShopVoucherInfo {
+		shopVoucherMap[i.StoreId] = i.VoucherCode
+	}
 
 	for _, i := range dto.StoreOrders {
 
@@ -89,57 +96,42 @@ func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.Crea
 		}
 
 		//init order data
-		orderData, err := o.saveOrderIntoDatabase(ctx, dto, &i, address, shippingDetail, products, itemMap)
+		orderData, err := o.saveOrderIntoDatabase(ctx, dto, address, shippingDetail, products, itemMap, shopVoucherMap)
 		if err != nil {
 			log.Error(err)
 			continue
 		}
 
 		//add key into response and send order data to orchestration service
-		orderIDs = append(orderIDs, orderData.OrderID)
+
+		checkout.OrderData = append(checkout.OrderData, msgDTO.OrderData{
+			OrderID: orderData.OrderID,
+			Amount:  uint(orderData.Amount),
+		})
+
+		checkout.TotalAmount += uint(orderData.Amount)
+
+		if len(i.CartIds) < 0 {
+			cartMap[i.StoreID] = i.CartIds
+		}
+
 		orders = append(orders, orderData)
 	}
 
-	var wg sync.WaitGroup
-	errMsgChan := make(chan error, len(orders))
-
-	for index, i := range orders {
-		wg.Add(1)
-		go func(orderData *order.Order, cartIds []string) {
-			defer wg.Done()
-
-			if err := o.publisher.SendOrderCreatedMessage(MappingDataToMessage(orderData, cartIds)); err != nil {
-				errMsgChan <- fmt.Errorf("publish order [%v] failed: %v", orderData.OrderID, err)
-			}
-		}(i, dto.StoreOrders[index].CartIds)
-	}
-
-	go func() {
-		wg.Wait()
-		close(errMsgChan)
-	}()
-
-	// Check for errors in the goroutines
-	for err := range errMsgChan {
+	if err := o.publisher.SendOrderCreatedMessage(MappingDataToMessage(orders, cartMap)); err != nil {
 		log.Error(err)
-		// handle errors here, such as returning an error response or logging them.
 	}
 
 	data := orderDTO.CreateOrderResponse{
-		UserOrder: orderDTO.UserRequest{
-			UserId:   dto.UserRequest.UserId,
-			Username: dto.UserRequest.Username,
-		},
-		OrderKeys: orderIDs,
-		CreatedAt: time.Now(),
+		CheckoutMessage: checkout,
 	}
 
 	return &data, nil
 }
 
 func (o orderCommandService) saveOrderIntoDatabase(ctx context.Context, dto *orderDTO.CreateOrderRequest,
-	storeOrder *orderDTO.StoreOrder, address *usergrpc.GetDetailAddressResponse, deli *deliverygrpc.GetShippingCostResponse,
-	productItems *productgrpc.GetPurchaseItemResponse, itemMap map[string]int) (*order.Order, error) {
+	address *usergrpc.GetDetailAddressResponse, deli *deliverygrpc.GetShippingCostResponse,
+	productItems *productgrpc.GetPurchaseItemResponse, itemMap map[string]int, shopVoucherMap map[string]string) (*order.Order, error) {
 
 	orderDAO := order.Order{}
 	orderDAO.OrderID = GenKeyOrder(dto.UserRequest.UserId)
@@ -178,38 +170,76 @@ func (o orderCommandService) saveOrderIntoDatabase(ctx context.Context, dto *ord
 	}
 	orderDAO.OrderItem = orderItems
 
-	// Check if the store order has a voucher to apply a discount to the order
-	if len(storeOrder.VoucherCode) > 0 {
-
-		voucherDetail, err := o.voucherGrpc.CheckingVoucher(ctx,
-			orderquery.MappingVoucherRequest(storeOrder.VoucherCode, &orderDAO))
+	// Check if the order has a voucher to apply a discount to the order
+	if dto.PromotionData != nil {
+		var voucherCode []string
+		//shipping and payment vouchers
+		voucherDetail, err := o.voucherGrpc.CheckUsingVouchersForCheckout(ctx,
+			orderquery.MappingPaymentAndShippingVoucherRequest(dto, &orderDAO))
 		if err != nil {
 			return nil, err
 		}
 
-		if voucherDetail.IsSuccess == true {
-
-			for _, v := range voucherDetail.Items {
-				switch v.VoucherType {
-				case voucherConst.FREE_SHIP:
-					if deli.Cost < v.DiscountValue {
-						orderDAO.ShippingDiscount = int(deli.Cost)
-					} else {
-						orderDAO.ShippingDiscount = int(v.DiscountValue)
-					}
-
-				case voucherConst.DISCOUNT_ORDER:
-					orderDAO.ItemDiscount = int(v.DiscountValue)
+		if voucherDetail != nil {
+			if voucherDetail.ShippingVoucher != nil {
+				if uint64(deli.Cost) < voucherDetail.ShippingVoucher.DiscountData.ShippingValue {
+					orderDAO.ShippingDiscount = int(deli.Cost)
+				} else {
+					orderDAO.ShippingDiscount = int(voucherDetail.ShippingVoucher.DiscountData.ShippingValue)
 				}
+				voucherCode = append(voucherCode, voucherDetail.ShippingVoucher.VoucherCode)
+			}
 
+			if voucherDetail.PaymentVoucher != nil {
+				switch voucherDetail.PaymentVoucher.DiscountData.DiscountType {
+				case voucherConst.FIXED_DISCOUNT:
+					orderDAO.PaymentDiscount = int(voucherDetail.PaymentVoucher.DiscountData.DiscountValue)
+				case voucherConst.PERCENT_DISCOUNT:
+					value := uint64(float32(orderDAO.SubTotal) * voucherDetail.PaymentVoucher.DiscountData.DiscountPercent)
+
+					if value <= voucherDetail.PaymentVoucher.DiscountData.MaximumValue {
+						orderDAO.PaymentDiscount = int(value)
+					} else {
+						orderDAO.PaymentDiscount = int(voucherDetail.PaymentVoucher.DiscountData.MaximumValue)
+					}
+				}
+				voucherCode = append(voucherCode, voucherDetail.PaymentVoucher.VoucherCode)
 			}
 		}
-		orderDAO.Vouchers = strings.Join(storeOrder.VoucherCode, ";")
+
+		//store vouchers
+		if shopVoucherMap[orderDAO.StoreId] != "" {
+			voucherResp, err := o.voucherGrpc.CheckUsingVouchersForCheckout(ctx,
+				orderquery.MappingShopVoucherRequest(&orderDAO, shopVoucherMap[orderDAO.StoreId]))
+			if err != nil {
+				return nil, err
+			}
+
+			switch voucherResp.StoreVouchers[0].DiscountData.DiscountType {
+			case voucherConst.FIXED_DISCOUNT:
+				orderDAO.StoreDiscount += int(voucherResp.StoreVouchers[0].DiscountData.DiscountValue)
+			case voucherConst.PERCENT_DISCOUNT:
+				value := uint64(float32(orderDAO.SubTotal) * voucherResp.StoreVouchers[0].DiscountData.DiscountPercent)
+
+				if value <= voucherResp.StoreVouchers[0].DiscountData.MaximumValue {
+					orderDAO.StoreDiscount += int(value)
+				} else {
+					orderDAO.StoreDiscount += int(voucherResp.StoreVouchers[0].DiscountData.MaximumValue)
+				}
+			}
+			voucherCode = append(voucherCode, shopVoucherMap[orderDAO.StoreId])
+
+		}
+
+		orderDAO.Vouchers = strings.Join(voucherCode, ";")
 	}
 
 	//calculate amount order
-	orderDAO.SubTotal += orderDAO.ShippingCost
-	orderDAO.Amount = orderDAO.SubTotal - (orderDAO.ItemDiscount + orderDAO.ShippingDiscount)
+	orderDAO.Amount = (orderDAO.SubTotal + orderDAO.ShippingCost) -
+		(orderDAO.PaymentDiscount + orderDAO.ShippingDiscount + orderDAO.StoreDiscount)
+	if orderDAO.Amount < 0 {
+		orderDAO.Amount = 0
+	}
 	orderDAO.Status = order.ORDER_SYSTEM_PROCESS
 
 	//create delivery

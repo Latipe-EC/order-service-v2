@@ -63,10 +63,11 @@ type Order struct {
 	UserId           string            `gorm:"not null;type:varchar(250)" json:"user_id"`
 	Username         string            `gorm:"not null;type:varchar(250)" json:"email"`
 	Amount           int               `gorm:"not null;type:bigint" json:"amount"`
-	ShippingDiscount int               `gorm:"not null;type:int" json:"shipping_discount"`
-	ItemDiscount     int               `gorm:"not null;type:int" json:"item_discount"`
-	Vouchers         string            `gorm:"not null;type:varchar(250)" json:"vouchers"`
 	ShippingCost     int               `gorm:"not null;type:int" json:"shipping_cost"`
+	Vouchers         string            `gorm:"not null;type:varchar(250)" json:"vouchers"`
+	PaymentDiscount  int               `gorm:"not null;type:int" json:"payment_discount"`
+	StoreDiscount    int               `gorm:"not null;type:int" json:"store_discount"`
+	ShippingDiscount int               `gorm:"not null;type:int" json:"shipping_discount"`
 	SubTotal         int               `gorm:"not null;type:int" json:"sub_total"`
 	Status           int               `gorm:"not null;type:int" json:"status"`
 	PaymentMethod    int               `json:"payment_method" gorm:"not null;type:int"`
