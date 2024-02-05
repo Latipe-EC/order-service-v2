@@ -1,8 +1,10 @@
-package redis
+package redisCache
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/redis/go-redis/v9"
 	"time"
 )
@@ -65,9 +67,14 @@ func (c *CacheEngine) Get(key string) ([]byte, error) {
 }
 
 // Set stores the given value for the given key along with a
-func (c *CacheEngine) Set(key string, val []byte) error {
-	ttl := 1 * time.Hour
-	result := c.client.Set(c.ctx, key, val, ttl)
+func (c *CacheEngine) Set(key string, val interface{}, ttl time.Duration) error {
+
+	data, err := json.Marshal(val)
+	if err != nil {
+		return err
+	}
+
+	result := c.client.Set(c.ctx, key, data, ttl)
 	return result.Err()
 }
 
@@ -99,4 +106,17 @@ func (c *CacheEngine) Ping() error {
 	}
 
 	return nil
+}
+
+func (c *CacheEngine) GetAllKey() ([]string, uint64, error) {
+	var keys []string
+	var cursor uint64
+	var err error
+	keys, cursor, err = c.client.Scan(c.ctx, cursor, "prefix:*", 0).Result()
+	if err != nil {
+		log.Error(err)
+		return nil, 0, err
+	}
+
+	return keys, cursor, nil
 }

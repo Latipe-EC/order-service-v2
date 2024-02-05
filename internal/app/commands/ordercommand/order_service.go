@@ -19,15 +19,16 @@ import (
 	vouchergrpc "latipe-order-service-v2/internal/infrastructure/grpc/promotionServ"
 	usergrpc "latipe-order-service-v2/internal/infrastructure/grpc/userServ"
 	publishMsg "latipe-order-service-v2/internal/msgqueue"
-	"latipe-order-service-v2/pkg/cache/redis"
+	"latipe-order-service-v2/pkg/cache/redisCache"
 	"latipe-order-service-v2/pkg/util/mapper"
 	"strings"
+	"time"
 )
 
 type orderCommandService struct {
 	cfg         *config.Config
 	orderRepo   order.Repository
-	cacheEngine *redis.CacheEngine
+	cacheEngine *redisCache.CacheEngine
 	publisher   *publishMsg.PublisherTransactionMessage
 	//grpc client
 	voucherGrpc  vouchergrpc.VoucherServiceClient
@@ -37,7 +38,7 @@ type orderCommandService struct {
 }
 
 func NewOrderCommmandService(cfg *config.Config, orderRepo order.Repository,
-	cacheEngine *redis.CacheEngine, publisher *publishMsg.PublisherTransactionMessage,
+	cacheEngine *redisCache.CacheEngine, publisher *publishMsg.PublisherTransactionMessage,
 	voucherGrpc vouchergrpc.VoucherServiceClient, productGrpc productgrpc.ProductServiceClient,
 	deliveryGrpc deliverygrpc.DeliveryServiceClient, userGrpc usergrpc.UserServiceClient) OrderCommandUsecase {
 	return orderCommandService{
@@ -66,7 +67,7 @@ func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.Crea
 
 	// Handle order group by store
 	checkout := msgDTO.CheckoutMessage{
-		CheckoutID:    uuid.NewString(),
+		CheckoutID:    strings.ReplaceAll(uuid.NewString(), "-", ""),
 		UserID:        dto.UserRequest.UserId,
 		PaymentMethod: dto.PaymentMethod,
 	}
@@ -119,6 +120,10 @@ func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.Crea
 	}
 
 	if err := o.publisher.SendOrderCreatedMessage(MappingDataToMessage(orders, cartMap)); err != nil {
+		log.Error(err)
+	}
+
+	if err := o.cacheEngine.Set(checkout.CheckoutID, checkout, 24*time.Hour); err != nil {
 		log.Error(err)
 	}
 
