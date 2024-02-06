@@ -24,6 +24,7 @@ import (
 	"latipe-order-service-v2/internal/infrastructure/grpc/productServ"
 	"latipe-order-service-v2/internal/infrastructure/grpc/promotionServ"
 	"latipe-order-service-v2/internal/infrastructure/grpc/userServ"
+	"latipe-order-service-v2/internal/infrastructure/persistence/commission"
 	"latipe-order-service-v2/internal/infrastructure/persistence/db"
 	"latipe-order-service-v2/internal/infrastructure/persistence/order"
 	"latipe-order-service-v2/internal/middleware"
@@ -43,7 +44,8 @@ func New() (*Server, error) {
 		return nil, err
 	}
 	gorm := db.NewMySQLConnection(configConfig)
-	repository := order.NewGormRepository(gorm)
+	orderRepository := order.NewGormRepository(gorm)
+	commissionRepository := commission.NewCommissionRepository(gorm)
 	cacheEngine, err := cache.NewCacheEngine(configConfig)
 	if err != nil {
 		return nil, err
@@ -54,15 +56,15 @@ func New() (*Server, error) {
 	productServiceClient := productgrpc.NewProductGrpcClientImpl(configConfig)
 	deliveryServiceClient := deliverygrpc.NewDeliveryServiceGRPCClientImpl(configConfig)
 	userServiceClient := usergrpc.NewUserServiceClientGRPCImpl(configConfig)
-	orderCommandUsecase := ordercommand.NewOrderCommmandService(configConfig, repository, cacheEngine, publisherTransactionMessage, voucherServiceClient, productServiceClient, deliveryServiceClient, userServiceClient)
-	orderQueryUsecase := orderquery.NewOrderQueryService(repository)
+	service := storeserv.NewStoreServiceAdapter(configConfig)
+	orderCommandUsecase := ordercommand.NewOrderCommmandService(configConfig, orderRepository, commissionRepository, cacheEngine, publisherTransactionMessage, voucherServiceClient, productServiceClient, deliveryServiceClient, userServiceClient, service)
+	orderQueryUsecase := orderquery.NewOrderQueryService(orderRepository)
 	orderApiHandler := order2.NewOrderHandler(orderCommandUsecase, orderQueryUsecase)
-	orderStatisticUsecase := orderstatistic.NewOrderStatisicService(repository)
+	orderStatisticUsecase := orderstatistic.NewOrderStatisicService(orderRepository)
 	orderStatisticApiHandler := order2.NewStatisticHandler(orderStatisticUsecase)
-	service := authserv.NewAuthServHttpAdapter(configConfig)
-	storeservService := storeserv.NewStoreServiceAdapter(configConfig)
+	authservService := authserv.NewAuthServHttpAdapter(configConfig)
 	deliveryservService := deliveryserv.NewDeliServHttpAdapter(configConfig)
-	authenticationMiddleware := auth.NewAuthMiddleware(service, storeservService, deliveryservService, configConfig)
+	authenticationMiddleware := auth.NewAuthMiddleware(authservService, service, deliveryservService, configConfig)
 	middlewareMiddleware := middleware.NewMiddleware(authenticationMiddleware)
 	orderRouter := router.NewOrderRouter(orderApiHandler, orderStatisticApiHandler, middlewareMiddleware)
 	purchaseReplySubscriber := worker.NewPurchaseReplySubscriber(configConfig, connection, orderCommandUsecase)

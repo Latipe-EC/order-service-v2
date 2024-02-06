@@ -13,6 +13,8 @@ import (
 	"latipe-order-service-v2/internal/domain/dto/order/store"
 	"latipe-order-service-v2/internal/domain/entities/order"
 	"latipe-order-service-v2/internal/domain/msgDTO"
+	"latipe-order-service-v2/internal/infrastructure/adapter/storeserv"
+	dto2 "latipe-order-service-v2/internal/infrastructure/adapter/storeserv/dto"
 	voucherConst "latipe-order-service-v2/internal/infrastructure/adapter/vouchersev/dto"
 	deliverygrpc "latipe-order-service-v2/internal/infrastructure/grpc/deliveryServ"
 	productgrpc "latipe-order-service-v2/internal/infrastructure/grpc/productServ"
@@ -26,30 +28,37 @@ import (
 )
 
 type orderCommandService struct {
-	cfg         *config.Config
-	orderRepo   order.Repository
-	cacheEngine *redisCache.CacheEngine
-	publisher   *publishMsg.PublisherTransactionMessage
+	cfg            *config.Config
+	orderRepo      order.OrderRepository
+	commissionRepo order.CommissionRepository
+	cacheEngine    *redisCache.CacheEngine
+	publisher      *publishMsg.PublisherTransactionMessage
 	//grpc client
 	voucherGrpc  vouchergrpc.VoucherServiceClient
 	productGrpc  productgrpc.ProductServiceClient
 	deliveryGrpc deliverygrpc.DeliveryServiceClient
 	userGrpc     usergrpc.UserServiceClient
+	//rest call
+	storeServ storeserv.Service
 }
 
-func NewOrderCommmandService(cfg *config.Config, orderRepo order.Repository,
+func NewOrderCommmandService(cfg *config.Config, orderRepo order.OrderRepository,
+	commissionRepo order.CommissionRepository,
 	cacheEngine *redisCache.CacheEngine, publisher *publishMsg.PublisherTransactionMessage,
 	voucherGrpc vouchergrpc.VoucherServiceClient, productGrpc productgrpc.ProductServiceClient,
-	deliveryGrpc deliverygrpc.DeliveryServiceClient, userGrpc usergrpc.UserServiceClient) OrderCommandUsecase {
+	deliveryGrpc deliverygrpc.DeliveryServiceClient, userGrpc usergrpc.UserServiceClient,
+	storeServ storeserv.Service) OrderCommandUsecase {
 	return orderCommandService{
-		orderRepo:    orderRepo,
-		cacheEngine:  cacheEngine,
-		publisher:    publisher,
-		cfg:          cfg,
-		deliveryGrpc: deliveryGrpc,
-		voucherGrpc:  voucherGrpc,
-		productGrpc:  productGrpc,
-		userGrpc:     userGrpc,
+		orderRepo:      orderRepo,
+		commissionRepo: commissionRepo,
+		cacheEngine:    cacheEngine,
+		publisher:      publisher,
+		cfg:            cfg,
+		deliveryGrpc:   deliveryGrpc,
+		voucherGrpc:    voucherGrpc,
+		productGrpc:    productGrpc,
+		userGrpc:       userGrpc,
+		storeServ:      storeServ,
 	}
 }
 
@@ -316,6 +325,32 @@ func (o orderCommandService) StoreUpdateOrderStatus(ctx context.Context, dto *st
 
 	switch dto.Status {
 	case order.ORDER_PREPARED:
+
+		req := dto2.GetStoreByIdRequest{
+			StoreID: dto.StoreId,
+		}
+
+		storeCms, err := o.storeServ.GetStoreByStoreId(ctx, &req)
+		if err != nil {
+			return err
+		}
+
+		commission := order.OrderCommission{
+			OrderType:         "orders",
+			OrderID:           orderDAO.OrderID,
+			Order:             orderDAO,
+			StoreID:           orderDAO.StoreId,
+			DiscountFromStore: orderDAO.StoreDiscount,
+			Status:            order.COMMIS_PENDING,
+			SystemFee:         int(float64(orderDAO.SubTotal) * storeCms.FeePerOrder),
+			CreatedAt:         time.Time{},
+		}
+		commission.AmountReceived = orderDAO.SubTotal - commission.DiscountFromStore - commission.SystemFee
+
+		if err := o.commissionRepo.CreateOrderCommission(&commission); err != nil {
+			return err
+		}
+
 		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_PREPARED); err != nil {
 			return err
 		}

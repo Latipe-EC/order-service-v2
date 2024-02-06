@@ -85,6 +85,7 @@ func New(c Config) (Gorm, error) {
 	if c.ConnMaxIdleTime != 0 {
 		sqlDB.SetConnMaxIdleTime(c.ConnMaxIdleTime)
 	}
+	//_ = db.Use(NewCacheGormPlugin())
 	return &_gorm{
 		db:    db,
 		sqlDB: sqlDB,

@@ -85,15 +85,16 @@ func (Order) TableName() string {
 }
 
 type OrderCommission struct {
-	Id             int `gorm:"not null;autoIncrement;primaryKey;type:bigint" json:"id"`
-	OrderType      string
-	OrderID        string    `gorm:"not null;type:char(16)" json:"order_id"`
-	Order          *Order    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	StoreID        string    `gorm:"not null;type:varchar(250)" json:"store_id"`
-	Status         int       `gorm:"not null;int" json:"status"`
-	AmountReceived int       `gorm:"not null;type:bigint" json:"amount_received"`
-	SystemFee      int       `gorm:"not null;type:bigint" json:"system_fee"`
-	CreatedAt      time.Time `gorm:"autoCreateTime;type:datetime(6)" json:"created_at"`
+	OrderType         string
+	Id                int       `gorm:"not null;autoIncrement;primaryKey;type:bigint" json:"id"`
+	OrderID           string    `gorm:"not null;type:char(16)" json:"order_id"`
+	StoreID           string    `gorm:"not null;type:varchar(250)" json:"store_id"`
+	DiscountFromStore int       `gorm:"not null;type:bigint" json:"discount_from_store"`
+	SystemFee         int       `gorm:"not null;type:bigint" json:"system_fee"`
+	Status            int       `gorm:"not null;int" json:"status"`
+	AmountReceived    int       `gorm:"not null;type:bigint" json:"amount_received"`
+	Order             *Order    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	CreatedAt         time.Time `gorm:"autoCreateTime;type:datetime(6)" json:"created_at"`
 }
 
 func (OrderCommission) TableName() string {

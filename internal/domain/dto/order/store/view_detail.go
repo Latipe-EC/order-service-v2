@@ -23,7 +23,7 @@ type StoreOrderResponse struct {
 	CreatedAt        time.Time          `json:"created_at"`
 	UpdatedAt        time.Time          `json:"updated_at"`
 	Delivery         order.DeliveryResp `json:"delivery"`
-	CommissionDetail CommissionDetail   `json:"commission_detail,omitempty"`
+	CommissionDetail *CommissionDetail  `json:"commission_detail,omitempty"`
 	OrderItems       []OrderStoreItem   `json:"order_items,omitempty"`
 }
 
@@ -39,8 +39,9 @@ type DeliveryOrderResponse struct {
 }
 
 type CommissionDetail struct {
-	AmountReceived int `json:"amount_received"`
-	SystemFee      int `json:"system_fee"`
+	AmountReceived    int `json:"amount_received"`
+	SystemFee         int `json:"system_fee"`
+	DiscountFromStore int ` json:"discount_from_store"`
 }
 
 type OrderStoreItem struct {

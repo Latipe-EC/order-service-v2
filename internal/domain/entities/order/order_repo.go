@@ -6,7 +6,7 @@ import (
 	"latipe-order-service-v2/pkg/util/pagable"
 )
 
-type Repository interface {
+type OrderRepository interface {
 	FindByItemId(ctx context.Context, itemId string) (*OrderItem, error)
 	FindByID(ctx context.Context, orderId string) (*Order, error)
 	FindOrderByStoreID(ctx context.Context, storeId string, query *pagable.Query, keyword string) ([]Order, error)

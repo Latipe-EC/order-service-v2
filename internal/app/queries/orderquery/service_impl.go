@@ -13,10 +13,10 @@ import (
 )
 
 type orderQueryService struct {
-	orderRepo order.Repository
+	orderRepo order.OrderRepository
 }
 
-func NewOrderQueryService(orderRepo order.Repository) OrderQueryUsecase {
+func NewOrderQueryService(orderRepo order.OrderRepository) OrderQueryUsecase {
 	return &orderQueryService{
 		orderRepo: orderRepo,
 	}
@@ -286,6 +286,10 @@ func (o orderQueryService) ViewDetailStoreOrder(ctx context.Context, dto *store.
 		return nil, err
 	}
 
+	if err = mapper.BindingStruct(orderDAO.OrderCommission, &orderResp.CommissionDetail); err != nil {
+		return nil, err
+	}
+
 	storeAmount := 0
 	var items []store.OrderStoreItem
 	for _, o := range orderDAO.OrderItem {
@@ -306,11 +310,6 @@ func (o orderQueryService) ViewDetailStoreOrder(ctx context.Context, dto *store.
 
 	if len(items) < 1 {
 		return nil, errors.ErrNotFoundRecord
-	}
-
-	if orderDAO.OrderCommission != nil {
-		orderResp.CommissionDetail.SystemFee = orderDAO.OrderCommission.SystemFee
-		orderResp.CommissionDetail.AmountReceived = orderDAO.OrderCommission.AmountReceived
 	}
 
 	orderResp.StoreOrderAmount = storeAmount

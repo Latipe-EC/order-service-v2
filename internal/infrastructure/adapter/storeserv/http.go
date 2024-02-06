@@ -2,13 +2,15 @@ package storeserv
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/google/wire"
 	"latipe-order-service-v2/config"
 	"latipe-order-service-v2/internal/common/errors"
 	"latipe-order-service-v2/internal/infrastructure/adapter/storeserv/dto"
-	"latipe-order-service-v2/pkg/internal_http"
+	http "latipe-order-service-v2/pkg/internal_http"
+	"latipe-order-service-v2/pkg/util/mapper"
 )
 
 var Set = wire.NewSet(
@@ -57,4 +59,40 @@ func (h httpAdapter) GetStoreByUserId(ctx context.Context, req *dto.GetStoreIdBy
 	}
 
 	return &regResp, nil
+}
+
+func (h httpAdapter) GetStoreByStoreId(ctx context.Context, req *dto.GetStoreByIdRequest) (*dto.GetStoreByIdResponse, error) {
+	resp, err := h.client.MakeRequest().
+		Get(fmt.Sprintf("%v%v", req.URL(), req.StoreID))
+
+	if err != nil {
+		log.Errorf("[Get store id]: %s", err)
+		return nil, err
+	}
+
+	if resp.StatusCode() >= 500 {
+		log.Errorf("[Get store id]: %s", resp.Body())
+		return nil, errors.New("internal service request")
+	}
+
+	if resp.StatusCode() >= 400 {
+		log.Errorf("[Get store id]: %s", resp.Body())
+		return nil, errors.New("service bad request")
+	}
+
+	var rawResp dto.BaseResponse
+	if err := json.Unmarshal(resp.Body(), &rawResp.Data); err != nil {
+		log.Errorf("[%s] [Get store id]: %s", "ERROR", err)
+		return nil, err
+	}
+
+	var regResp *dto.GetStoreByIdResponse
+
+	err = mapper.BindingStruct(rawResp.Data, &regResp)
+	if err != nil {
+		log.Errorf("[Get store id]: %s", err)
+		return nil, err
+	}
+
+	return regResp, nil
 }

@@ -3,6 +3,7 @@ module latipe-order-service-v2
 go 1.20
 
 require (
+	github.com/Pacific73/gorm-cache v1.1.1
 	github.com/ansrivas/fiberprometheus/v2 v2.6.1
 	github.com/go-playground/validator/v10 v10.17.0
 	github.com/go-resty/resty/v2 v2.11.0
@@ -16,8 +17,8 @@ require (
 	github.com/stretchr/testify v1.8.4
 	google.golang.org/grpc v1.61.0
 	google.golang.org/protobuf v1.32.0
-	gorm.io/driver/mysql v1.5.2
-	gorm.io/gorm v1.25.5
+	gorm.io/driver/mysql v1.5.3
+	gorm.io/gorm v1.25.7-0.20240204074919-46816ad31dde
 
 )
 
@@ -31,12 +32,14 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/gofiber/adaptor/v2 v2.2.1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/karlseguin/ccache/v2 v2.0.8 // indirect
 	github.com/klauspost/compress v1.17.4 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect

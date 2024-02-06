@@ -7,10 +7,10 @@ import (
 )
 
 type orderStatisticService struct {
-	orderRepo order.Repository
+	orderRepo order.OrderRepository
 }
 
-func NewOrderStatisicService(orderRepos order.Repository) OrderStatisticUsecase {
+func NewOrderStatisicService(orderRepos order.OrderRepository) OrderStatisticUsecase {
 	return &orderStatisticService{orderRepo: orderRepos}
 }
 

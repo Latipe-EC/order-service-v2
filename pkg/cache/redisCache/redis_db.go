@@ -3,9 +3,9 @@ package redisCache
 import (
 	"context"
 	"encoding/json"
-	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/redis/go-redis/v9"
+	"latipe-order-service-v2/internal/common/errors"
 	"time"
 )
 
@@ -49,6 +49,10 @@ type CacheEngine struct {
 	ctx    context.Context
 }
 
+func (c *CacheEngine) Client() *redis.Client {
+	return c.client
+}
+
 // WithContext for operate
 func (c *CacheEngine) WithContext(ctx context.Context) *CacheEngine {
 	cp := *c
@@ -61,7 +65,7 @@ func (c *CacheEngine) Get(key string) ([]byte, error) {
 	result := c.client.Get(c.ctx, key)
 	val, err := result.Bytes()
 	if redis.Nil == err {
-		return val, fiber.ErrNotFound
+		return val, errors.ErrNotFound
 	}
 	return val, err
 }

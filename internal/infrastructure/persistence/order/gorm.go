@@ -14,7 +14,7 @@ type GormRepository struct {
 	client gorm.Gorm
 }
 
-func NewGormRepository(client gorm.Gorm) entity.Repository {
+func NewGormRepository(client gorm.Gorm) entity.OrderRepository {
 	// auto migrate
 	err := client.DB().AutoMigrate(
 		&entity.Order{},
