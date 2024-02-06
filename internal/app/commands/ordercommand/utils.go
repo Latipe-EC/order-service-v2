@@ -48,8 +48,14 @@ func GetQuantityItems(productId string, optionId string, item map[string]int) in
 		return item[productId]
 	}
 }
-func MappingDataToMessage(daos []*order.Order, cartMap map[string][]string) *msgDTO.CreateOrderMessage {
+func MappingDataToMessage(daos []*order.Order, dto *reqDTO.CreateOrderRequest,
+	cartMap map[string][]string, checkout msgDTO.CheckoutMessage) *msgDTO.CreateOrderMessage {
+
 	orderMsg := msgDTO.CreateOrderMessage{}
+	if err := mapper.Copy(&orderMsg.CheckoutMessage, checkout); err != nil {
+		log.Error(err)
+		return nil
+	}
 
 	orderMsg.UserRequest.UserId = daos[0].UserId
 	orderMsg.UserRequest.Username = daos[0].Username
@@ -58,9 +64,18 @@ func MappingDataToMessage(daos []*order.Order, cartMap map[string][]string) *msg
 	orderMsg.Address.Name = daos[0].Delivery.ShippingName
 	orderMsg.Address.Phone = daos[0].Delivery.ShippingPhone
 
+	//mapping promotion data
+	orderMsg.PromotionMessage.FreeShippingVoucher = dto.PromotionData.FreeShippingVoucherInfo.VoucherCode
+	orderMsg.PromotionMessage.PaymentVoucher = dto.PromotionData.PaymentVoucherInfo.VoucherCode
+	orderMsg.PromotionMessage.PaymentVoucher = dto.PromotionData.PaymentVoucherInfo.VoucherCode
+	for _, i := range dto.PromotionData.ShopVoucherInfo {
+		orderMsg.PromotionMessage.ShopVoucher = append(orderMsg.PromotionMessage.ShopVoucher, i.VoucherCode)
+	}
+
+	//order items
 	for _, i := range daos {
 		orderDetail := msgDTO.OrderDetail{}
-		if err := mapper.Copy(i, orderDetail); err != nil {
+		if err := mapper.Copy(&orderDetail, i); err != nil {
 			log.Error(err)
 			return nil
 		}
@@ -93,6 +108,8 @@ func MappingDataToMessage(daos []*order.Order, cartMap map[string][]string) *msg
 
 		orderDetail.OrderItems = orderItems
 		orderDetail.CartIds = cartMap[i.StoreId]
+
+		orderMsg.OrderDetail = append(orderMsg.OrderDetail, orderDetail)
 	}
 
 	return &orderMsg

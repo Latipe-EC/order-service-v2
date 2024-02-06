@@ -34,8 +34,9 @@ message PaymentVoucher {
 }
 
 message ShopVoucher {
-  int64 sub_total = 1;
-  string voucher_code = 2;
+  string store_id = 1;
+  int64 sub_total = 2;
+  string voucher_code = 3;
 }
 
 message VoucherDetail {

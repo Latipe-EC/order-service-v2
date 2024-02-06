@@ -34,7 +34,7 @@ func MappingShopVoucherRequest(orderData *enitites.Order, voucherCode string) *v
 		PaymentMethod:    int32(orderData.PaymentMethod),
 		UserId:           orderData.UserId,
 		ShopVouchers: []*vouchergrpc.ShopVoucher{
-			{SubTotal: int64(orderData.SubTotal), VoucherCode: voucherCode},
+			{SubTotal: int64(orderData.SubTotal), VoucherCode: voucherCode, StoreId: orderData.StoreId},
 		},
 	}
 

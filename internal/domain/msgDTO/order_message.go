@@ -8,10 +8,11 @@ type OrderStatusMessage struct {
 }
 
 type CreateOrderMessage struct {
-	UserRequest     UserRequest     `json:"user_request,omitempty"`
-	Address         OrderAddress    `json:"address,omitempty" validate:"required"`
-	CheckoutMessage CheckoutMessage `json:"checkout_data"`
-	OrderDetail     []OrderDetail   `json:"order_detail"`
+	UserRequest      UserRequest      `json:"user_request,omitempty"`
+	Address          OrderAddress     `json:"address,omitempty" validate:"required"`
+	CheckoutMessage  CheckoutMessage  `json:"checkout_data"`
+	PromotionMessage PromotionMessage `json:"promotion_data"`
+	OrderDetail      []OrderDetail    `json:"order_detail"`
 }
 
 type OrderDetail struct {
@@ -44,7 +45,6 @@ type ProductItem struct {
 	ProductID   string `json:"product_id"`
 	ProductName string `json:"product_name"`
 	NameOption  string `json:"name_option"`
-	StoreID     string `json:"store_id"`
 	OptionID    string `json:"option_id" `
 	Image       string `json:"image"`
 	Quantity    int    `json:"quantity"`
@@ -64,4 +64,10 @@ type Delivery struct {
 	Name          string    `json:"name" validate:"required"`
 	Cost          int       `json:"cost" validate:"required"`
 	ReceivingDate time.Time `json:"receiving_date" validate:"required"`
+}
+
+type PromotionMessage struct {
+	FreeShippingVoucher string   `json:"free_shipping_voucher"`
+	PaymentVoucher      string   `json:"payment_voucher"`
+	ShopVoucher         []string `json:"shop_vouchers"`
 }

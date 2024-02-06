@@ -76,13 +76,20 @@ func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.Crea
 		shopVoucherMap[i.StoreId] = i.VoucherCode
 	}
 
+	data := orderDTO.CreateOrderResponse{
+		CheckoutMessage: checkout,
+	}
+
 	for _, i := range dto.StoreOrders {
 
 		productReq, itemMap := MappingToProductRequest(i)
 
 		products, err := o.productGrpc.CheckInStock(ctx, productReq)
 		if err != nil {
-			return nil, err
+			log.Error(err)
+			data.FailedOrder.StoreID = i.StoreID
+			data.FailedOrder.Message = "out of stock"
+			continue
 		}
 
 		//handle order group by store_order and calculate shipping cost
@@ -93,12 +100,17 @@ func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.Crea
 		}
 		shippingDetail, err := o.deliveryGrpc.CalculateShippingCost(ctx, &shippingReq)
 		if err != nil {
-			return nil, err
+			data.FailedOrder.StoreID = i.StoreID
+			data.FailedOrder.Message = "calculating shipping cost is failed"
+			log.Error(err)
+			continue
 		}
 
 		//init order data
 		orderData, err := o.saveOrderIntoDatabase(ctx, dto, address, shippingDetail, products, itemMap, shopVoucherMap)
 		if err != nil {
+			data.FailedOrder.StoreID = i.StoreID
+			data.FailedOrder.Message = "calculating promotion data is failed"
 			log.Error(err)
 			continue
 		}
@@ -119,7 +131,11 @@ func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.Crea
 		orders = append(orders, orderData)
 	}
 
-	if err := o.publisher.SendOrderCreatedMessage(MappingDataToMessage(orders, cartMap)); err != nil {
+	if len(orders) == 0 {
+		return nil, errors.OrderCannotCreated
+	}
+
+	if err := o.publisher.SendOrderCreatedMessage(MappingDataToMessage(orders, dto, cartMap, checkout)); err != nil {
 		log.Error(err)
 	}
 
@@ -127,10 +143,7 @@ func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.Crea
 		log.Error(err)
 	}
 
-	data := orderDTO.CreateOrderResponse{
-		CheckoutMessage: checkout,
-	}
-
+	data.CheckoutMessage = checkout
 	return &data, nil
 }
 
@@ -236,7 +249,7 @@ func (o orderCommandService) saveOrderIntoDatabase(ctx context.Context, dto *ord
 
 		}
 
-		orderDAO.Vouchers = strings.Join(voucherCode, ";")
+		orderDAO.Vouchers = strings.Join(voucherCode, "-")
 	}
 
 	//calculate amount order

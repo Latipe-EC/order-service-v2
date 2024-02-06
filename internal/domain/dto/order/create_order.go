@@ -22,6 +22,12 @@ type StoreOrder struct {
 
 type CreateOrderResponse struct {
 	msgDTO.CheckoutMessage
+	FailedOrder FailedOrder `json:"failed_order,omitempty"`
+}
+
+type FailedOrder struct {
+	StoreID string `json:"store_id,omitempty"`
+	Message string `json:"message,omitempty"`
 }
 
 type UserRequest struct {

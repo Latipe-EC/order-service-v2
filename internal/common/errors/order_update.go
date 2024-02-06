@@ -30,4 +30,11 @@ var (
 		ErrorCode: "UP004",
 		Message:   "Đơn hàng không thể hủy",
 	}
+
+	OrderCannotCreated = &Error{
+		Status:    400,
+		Code:      enum.INVALID_ARGUMENT,
+		ErrorCode: "UP005",
+		Message:   "Tạo đơn hàng thất bại",
+	}
 )
