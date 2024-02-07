@@ -1,10 +1,6 @@
 package msgDTO
 
-import "time"
-
 type OrderCancelMessage struct {
-	OrderID       string    `json:"OrderID"`
-	OrderStatus   int       `json:"orderStatus"`
-	PaymentMethod int       `json:"paymentMethod"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	OrderID      string `json:"order_id"`
+	CancelStatus int    `json:"cancel_status"`
 }

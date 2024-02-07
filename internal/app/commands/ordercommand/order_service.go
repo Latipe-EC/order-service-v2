@@ -220,14 +220,14 @@ func (o orderCommandService) saveOrderIntoDatabase(ctx context.Context, dto *ord
 			if voucherDetail.PaymentVoucher != nil {
 				switch voucherDetail.PaymentVoucher.DiscountData.DiscountType {
 				case voucherConst.FIXED_DISCOUNT:
-					orderDAO.PaymentDiscount = int(voucherDetail.PaymentVoucher.DiscountData.DiscountValue)
+					orderDAO.PaymentDiscount = int(voucherDetail.PaymentVoucher.DiscountData.DiscountValue) / len(dto.StoreOrders)
 				case voucherConst.PERCENT_DISCOUNT:
 					value := uint64(float32(orderDAO.SubTotal) * voucherDetail.PaymentVoucher.DiscountData.DiscountPercent)
 
 					if value <= voucherDetail.PaymentVoucher.DiscountData.MaximumValue {
-						orderDAO.PaymentDiscount = int(value)
+						orderDAO.PaymentDiscount = int(value) / len(dto.StoreOrders)
 					} else {
-						orderDAO.PaymentDiscount = int(voucherDetail.PaymentVoucher.DiscountData.MaximumValue)
+						orderDAO.PaymentDiscount = int(voucherDetail.PaymentVoucher.DiscountData.MaximumValue) / len(dto.StoreOrders)
 					}
 				}
 				voucherCode = append(voucherCode, voucherDetail.PaymentVoucher.VoucherCode)
@@ -493,9 +493,9 @@ func (o orderCommandService) UserRefundOrder(ctx context.Context, dto *orderDTO.
 		return errors.OrderCannotRefund
 	}
 
-	mess := msgDTO.OrderStatusMessage{
-		OrderID: dao.OrderID,
-		Status:  order.ORDER_REFUND,
+	mess := msgDTO.OrderCancelMessage{
+		OrderID:      dao.OrderID,
+		CancelStatus: order.ORDER_REFUND,
 	}
 
 	if err := o.publisher.SendOrderCancelMessage(&mess); err != nil {
@@ -525,9 +525,9 @@ func (o orderCommandService) UserCancelOrder(ctx context.Context, dto *orderDTO.
 		return errors.OrderCannotCancel
 	}
 
-	mess := msgDTO.OrderStatusMessage{
-		OrderID: dao.OrderID,
-		Status:  order.ORDER_CANCEL_BY_USER,
+	mess := msgDTO.OrderCancelMessage{
+		OrderID:      dao.OrderID,
+		CancelStatus: order.ORDER_CANCEL_BY_USER,
 	}
 
 	if err := o.publisher.SendOrderCancelMessage(&mess); err != nil {
@@ -548,9 +548,9 @@ func (o orderCommandService) AdminCancelOrder(ctx context.Context, dto *orderDTO
 		return err
 	}
 
-	mess := msgDTO.OrderStatusMessage{
-		OrderID: dao.OrderID,
-		Status:  order.ORDER_CANCEL_BY_ADMIN,
+	mess := msgDTO.OrderCancelMessage{
+		OrderID:      dao.OrderID,
+		CancelStatus: order.ORDER_CANCEL_BY_ADMIN,
 	}
 
 	if err := o.publisher.SendOrderCancelMessage(&mess); err != nil {

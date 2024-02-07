@@ -61,7 +61,7 @@ func (pub *PublisherTransactionMessage) SendOrderCreatedMessage(orderMsg *msgDTO
 	return nil
 }
 
-func (pub *PublisherTransactionMessage) SendOrderCancelMessage(request interface{}) error {
+func (pub *PublisherTransactionMessage) SendOrderCancelMessage(request *msgDTO.OrderCancelMessage) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -72,11 +72,11 @@ func (pub *PublisherTransactionMessage) SendOrderCancelMessage(request interface
 
 	log.Infof("Send message to queue %v - %v",
 		pub.cfg.RabbitMQ.SagaOrderEvent.Exchange,
-		pub.cfg.RabbitMQ.SagaOrderEvent.PublishRoutingKey)
+		pub.cfg.RabbitMQ.SagaOrderEvent.CancelRoutingKey)
 
 	err = pub.channel.PublishWithContext(ctx,
-		pub.cfg.RabbitMQ.SagaOrderEvent.Exchange,          // exchange
-		pub.cfg.RabbitMQ.SagaOrderEvent.PublishRoutingKey, // routing key
+		pub.cfg.RabbitMQ.SagaOrderEvent.Exchange,         // exchange
+		pub.cfg.RabbitMQ.SagaOrderEvent.CancelRoutingKey, // routing key
 		false, // mandatory
 		false, // immediate
 		amqp.Publishing{

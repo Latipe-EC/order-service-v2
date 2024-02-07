@@ -112,6 +112,7 @@ type RabbitMQ struct {
 type SagaOrderEvent struct {
 	Exchange          string
 	PublishRoutingKey string
+	CancelRoutingKey  string
 	ReplyRoutingKey   string
 	Queue             string
 }

@@ -45,6 +45,7 @@ RabbitMQ:
   SagaOrderEvent:
     Exchange: order_transaction_ex
     RoutingKey: order_created_event
+    CancelRoutingKey: order.transaction.cancel
     PublishRoutingKey: order.transaction.commit
     ReplyRoutingKey: order.transaction.reply
 
