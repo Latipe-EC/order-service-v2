@@ -21,7 +21,7 @@ import (
 	vouchergrpc "latipe-order-service-v2/internal/infrastructure/grpc/promotionServ"
 	usergrpc "latipe-order-service-v2/internal/infrastructure/grpc/userServ"
 	publishMsg "latipe-order-service-v2/internal/msgqueue"
-	"latipe-order-service-v2/pkg/cache/redisCache"
+	"latipe-order-service-v2/pkg/cache/redisCacheV9"
 	"latipe-order-service-v2/pkg/util/mapper"
 	"strings"
 	"time"
@@ -31,7 +31,7 @@ type orderCommandService struct {
 	cfg            *config.Config
 	orderRepo      order.OrderRepository
 	commissionRepo order.CommissionRepository
-	cacheEngine    *redisCache.CacheEngine
+	cacheEngine    *cacheV9.CacheEngine
 	publisher      *publishMsg.PublisherTransactionMessage
 	//grpc client
 	voucherGrpc  vouchergrpc.VoucherServiceClient
@@ -44,7 +44,7 @@ type orderCommandService struct {
 
 func NewOrderCommmandService(cfg *config.Config, orderRepo order.OrderRepository,
 	commissionRepo order.CommissionRepository,
-	cacheEngine *redisCache.CacheEngine, publisher *publishMsg.PublisherTransactionMessage,
+	cacheEngine *cacheV9.CacheEngine, publisher *publishMsg.PublisherTransactionMessage,
 	voucherGrpc vouchergrpc.VoucherServiceClient, productGrpc productgrpc.ProductServiceClient,
 	deliveryGrpc deliverygrpc.DeliveryServiceClient, userGrpc usergrpc.UserServiceClient,
 	storeServ storeserv.Service) OrderCommandUsecase {

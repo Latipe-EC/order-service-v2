@@ -3,11 +3,12 @@ package db
 import (
 	"fmt"
 	"latipe-order-service-v2/config"
+	cacheV8 "latipe-order-service-v2/pkg/cache/redisCacheV8"
 	"latipe-order-service-v2/pkg/db/gorm"
 	"log"
 )
 
-func NewMySQLConnection(configuration *config.Config) gorm.Gorm {
+func NewMySQLConnection(configuration *config.Config, redisClient *cacheV8.CacheEngine) gorm.Gorm {
 	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=True&loc=Local",
 		configuration.DB.Mysql.UserName,
 		configuration.DB.Mysql.Password,
@@ -24,7 +25,7 @@ func NewMySQLConnection(configuration *config.Config) gorm.Gorm {
 		DBType:          "mysql",
 		Debug:           true,
 	}
-	conn, err := gorm.New(cfg)
+	conn, err := gorm.New(cfg, redisClient)
 	if err != nil {
 		panic(err)
 	}

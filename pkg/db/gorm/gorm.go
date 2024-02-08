@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 	"latipe-order-service-v2/config"
+	cacheV8 "latipe-order-service-v2/pkg/cache/redisCacheV8"
 	"strings"
 	"time"
 )
@@ -42,7 +43,7 @@ type _gorm struct {
 }
 
 // New Create gorm.DB and  instance
-func New(c Config) (Gorm, error) {
+func New(c Config, redisClient *cacheV8.CacheEngine) (Gorm, error) {
 	var dial gorm.Dialector
 
 	switch strings.ToLower(c.DBType) {
@@ -85,7 +86,8 @@ func New(c Config) (Gorm, error) {
 	if c.ConnMaxIdleTime != 0 {
 		sqlDB.SetConnMaxIdleTime(c.ConnMaxIdleTime)
 	}
-	//_ = db.Use(NewCacheGormPlugin())
+
+	_ = db.Use(NewCacheGormPlugin(redisClient))
 	return &_gorm{
 		db:    db,
 		sqlDB: sqlDB,

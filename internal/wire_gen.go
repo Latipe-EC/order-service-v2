@@ -43,10 +43,14 @@ func New() (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	gorm := db.NewMySQLConnection(configConfig)
+	cacheEngine, err := cache.NewCacheEngineV8(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	gorm := db.NewMySQLConnection(configConfig, cacheEngine)
 	orderRepository := order.NewGormRepository(gorm)
 	commissionRepository := commission.NewCommissionRepository(gorm)
-	cacheEngine, err := cache.NewCacheEngine(configConfig)
+	cacheV9CacheEngine, err := cache.NewCacheEngineV9(configConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -57,14 +61,14 @@ func New() (*Server, error) {
 	deliveryServiceClient := deliverygrpc.NewDeliveryServiceGRPCClientImpl(configConfig)
 	userServiceClient := usergrpc.NewUserServiceClientGRPCImpl(configConfig)
 	service := storeserv.NewStoreServiceAdapter(configConfig)
-	orderCommandUsecase := ordercommand.NewOrderCommmandService(configConfig, orderRepository, commissionRepository, cacheEngine, publisherTransactionMessage, voucherServiceClient, productServiceClient, deliveryServiceClient, userServiceClient, service)
+	orderCommandUsecase := ordercommand.NewOrderCommmandService(configConfig, orderRepository, commissionRepository, cacheV9CacheEngine, publisherTransactionMessage, voucherServiceClient, productServiceClient, deliveryServiceClient, userServiceClient, service)
 	orderQueryUsecase := orderquery.NewOrderQueryService(orderRepository)
 	orderApiHandler := order2.NewOrderHandler(orderCommandUsecase, orderQueryUsecase)
 	orderStatisticUsecase := orderstatistic.NewOrderStatisicService(orderRepository)
 	orderStatisticApiHandler := order2.NewStatisticHandler(orderStatisticUsecase)
 	authservService := authserv.NewAuthServHttpAdapter(configConfig)
 	deliveryservService := deliveryserv.NewDeliServHttpAdapter(configConfig)
-	authenticationMiddleware := auth.NewAuthMiddleware(authservService, service, deliveryservService, configConfig)
+	authenticationMiddleware := auth.NewAuthMiddleware(authservService, service, deliveryservService, configConfig, cacheV9CacheEngine)
 	middlewareMiddleware := middleware.NewMiddleware(authenticationMiddleware)
 	orderRouter := router.NewOrderRouter(orderApiHandler, orderStatisticApiHandler, middlewareMiddleware)
 	purchaseReplySubscriber := worker.NewPurchaseReplySubscriber(configConfig, connection, orderCommandUsecase)
