@@ -76,7 +76,8 @@ type Redis struct {
 	Address  string
 	Port     int
 	Password string
-	DB       int
+	DbQuery  int
+	DbAuth   int
 }
 
 type Mysql struct {

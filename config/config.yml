@@ -36,7 +36,8 @@ Cache:
     Address: localhost
     Port: 6379
     Password:
-    DB: 0
+    DbAuth: 10
+    DbQuery: 11
 
 RabbitMQ:
   Connection: amqp://guest:guest@localhost:5672/

@@ -17,7 +17,7 @@ var Set = wire.NewSet(
 func NewCacheEngineV9(config *config.Config) (*cacheV9.CacheEngine, error) {
 	cfg := cacheV9.RedisConfig{
 		Address:               fmt.Sprintf("%v:%v", config.Cache.Redis.Address, config.Cache.Redis.Port),
-		DB:                    config.Cache.Redis.DB,
+		DB:                    config.Cache.Redis.DbAuth,
 		Password:              config.Cache.Redis.Password,
 		ContextTimeoutEnabled: true,
 		PoolSize:              5,
@@ -37,7 +37,7 @@ func NewCacheEngineV9(config *config.Config) (*cacheV9.CacheEngine, error) {
 func NewCacheEngineV8(config *config.Config) (*cacheV8.CacheEngine, error) {
 	cfg := cacheV8.RedisConfig{
 		Address:               fmt.Sprintf("%v:%v", config.Cache.Redis.Address, config.Cache.Redis.Port),
-		DB:                    config.Cache.Redis.DB,
+		DB:                    config.Cache.Redis.DbQuery,
 		Password:              config.Cache.Redis.Password,
 		ContextTimeoutEnabled: true,
 		PoolSize:              5,
