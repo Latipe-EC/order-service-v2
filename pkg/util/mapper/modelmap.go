@@ -2,6 +2,7 @@ package mapper
 
 import (
 	"encoding/json"
+	"github.com/bytedance/sonic"
 	"github.com/jinzhu/copier"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -34,12 +35,12 @@ func BindingStructGrpc(src interface{}, desc proto.Message) error {
 // BindingStruct - biding struct to struct
 func BindingStruct(src interface{}, desc interface{}) error {
 	// convert to byte
-	byteSrc, err := json.Marshal(src)
+	byteSrc, err := sonic.Marshal(src)
 	if err != nil {
 		return err
 	}
 	// binding to desc
-	err = json.Unmarshal(byteSrc, &desc)
+	err = sonic.Unmarshal(byteSrc, &desc)
 	if err != nil {
 		return err
 	}

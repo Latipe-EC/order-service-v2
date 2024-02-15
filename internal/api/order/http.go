@@ -4,26 +4,26 @@ import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
-	"latipe-order-service-v2/internal/app/commands/ordercommand"
-	"latipe-order-service-v2/internal/app/queries/orderquery"
 	"latipe-order-service-v2/internal/common/errors"
+	"latipe-order-service-v2/internal/common/responses"
 	dto "latipe-order-service-v2/internal/domain/dto/order"
 	"latipe-order-service-v2/internal/domain/dto/order/delivery"
 	internalDTO "latipe-order-service-v2/internal/domain/dto/order/internal-service"
 	"latipe-order-service-v2/internal/domain/dto/order/store"
 	"latipe-order-service-v2/internal/middleware/auth"
-	"latipe-order-service-v2/internal/responses"
+	"latipe-order-service-v2/internal/services/commands/orderCmd"
+	"latipe-order-service-v2/internal/services/queries/orderQuery"
 	"latipe-order-service-v2/pkg/util/pagable"
 	"latipe-order-service-v2/pkg/util/valid"
 	"strings"
 )
 
 type orderApiHandler struct {
-	orderCommandServ ordercommand.OrderCommandUsecase
-	orderQueryServ   orderquery.OrderQueryUsecase
+	orderCommandServ orderCmd.OrderCommandUsecase
+	orderQueryServ   orderQuery.OrderQueryUsecase
 }
 
-func NewOrderHandler(orderCommandServ ordercommand.OrderCommandUsecase, orderQueryServ orderquery.OrderQueryUsecase) OrderApiHandler {
+func NewOrderHandler(orderCommandServ orderCmd.OrderCommandUsecase, orderQueryServ orderQuery.OrderQueryUsecase) OrderApiHandler {
 	return orderApiHandler{
 		orderCommandServ: orderCommandServ,
 		orderQueryServ:   orderQueryServ,

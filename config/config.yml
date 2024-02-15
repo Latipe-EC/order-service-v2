@@ -31,6 +31,7 @@ DB:
     MaxConnIdleTime:
     MinPoolSize:
     MaxPoolSize:
+
 Cache:
   Redis:
     Address: localhost
@@ -87,3 +88,9 @@ GRPC:
   UserServiceGrpc:
     Connection: localhost:9362
     ApiKey: L95WcifFRUEREbSbrKHgyTFVd64YubZYSRo/zjW2PcXPhLeuv8SS4OYlOF8VfGdlXuzzDFBnfMfCGnjFgYN8Iw==
+
+Metrics:
+  Username: admin
+  Password: 123123
+  PrometheusURL: /metrics
+  FiberURL: /fiber/dashboard

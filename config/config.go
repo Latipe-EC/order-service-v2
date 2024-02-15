@@ -20,6 +20,7 @@ type Config struct {
 	//Adapters Adapters
 	AdapterService AdapterService
 	RabbitMQ       RabbitMQ
+	Metrics        Metrics
 }
 
 type Server struct {
@@ -162,6 +163,13 @@ type DeliveryService struct {
 type PromotionService struct {
 	BaseURL     string
 	InternalKey string
+}
+
+type Metrics struct {
+	Username      string
+	Password      string
+	PrometheusURL string
+	FiberURL      string
 }
 
 // Get config path for local or docker

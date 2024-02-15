@@ -3,8 +3,8 @@ package errors
 import (
 	"errors"
 	"github.com/gofiber/fiber/v2"
+	"latipe-order-service-v2/internal/common/responses"
 	"latipe-order-service-v2/internal/domain/enum"
-	"latipe-order-service-v2/internal/responses"
 	"net/http"
 )
 

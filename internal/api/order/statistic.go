@@ -3,20 +3,20 @@ package order
 import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
-	"latipe-order-service-v2/internal/app/queries/orderstatistic"
 	"latipe-order-service-v2/internal/common/errors"
+	"latipe-order-service-v2/internal/common/responses"
 	"latipe-order-service-v2/internal/domain/dto/order/statistic"
 	"latipe-order-service-v2/internal/middleware/auth"
-	"latipe-order-service-v2/internal/responses"
+	"latipe-order-service-v2/internal/services/queries/statisticQuery"
 	"latipe-order-service-v2/pkg/util/valid"
 	"strings"
 )
 
 type statisticApiHandler struct {
-	orderStatisticUsecase orderstatistic.OrderStatisticUsecase
+	orderStatisticUsecase statisticQuery.OrderStatisticUsecase
 }
 
-func NewStatisticHandler(orderStatisticUsecase orderstatistic.OrderStatisticUsecase) OrderStatisticApiHandler {
+func NewStatisticHandler(orderStatisticUsecase statisticQuery.OrderStatisticUsecase) OrderStatisticApiHandler {
 	return statisticApiHandler{
 		orderStatisticUsecase: orderStatisticUsecase,
 	}

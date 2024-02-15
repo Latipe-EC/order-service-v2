@@ -7,15 +7,17 @@
 package server
 
 import (
-	"encoding/json"
 	"github.com/ansrivas/fiberprometheus/v2"
+	"github.com/bytedance/sonic"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
+	"github.com/gofiber/fiber/v2/middleware/basicauth"
+	healthcheck2 "github.com/gofiber/fiber/v2/middleware/healthcheck"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/monitor"
+	"github.com/hellofresh/health-go/v5"
 	"latipe-order-service-v2/config"
 	order2 "latipe-order-service-v2/internal/api/order"
-	"latipe-order-service-v2/internal/app/commands/ordercommand"
-	"latipe-order-service-v2/internal/app/queries/orderquery"
-	"latipe-order-service-v2/internal/app/queries/orderstatistic"
 	"latipe-order-service-v2/internal/common/errors"
 	"latipe-order-service-v2/internal/infrastructure/adapter/authserv"
 	"latipe-order-service-v2/internal/infrastructure/adapter/deliveryserv"
@@ -29,10 +31,14 @@ import (
 	"latipe-order-service-v2/internal/infrastructure/persistence/order"
 	"latipe-order-service-v2/internal/middleware"
 	"latipe-order-service-v2/internal/middleware/auth"
-	"latipe-order-service-v2/internal/msgqueue"
+	"latipe-order-service-v2/internal/publisher"
 	"latipe-order-service-v2/internal/router"
-	"latipe-order-service-v2/internal/worker"
+	"latipe-order-service-v2/internal/services/commands/orderCmd"
+	"latipe-order-service-v2/internal/services/queries/orderQuery"
+	"latipe-order-service-v2/internal/services/queries/statisticQuery"
+	"latipe-order-service-v2/internal/subscriber"
 	"latipe-order-service-v2/pkg/cache"
+	"latipe-order-service-v2/pkg/healthcheck"
 	"latipe-order-service-v2/pkg/rabbitclient"
 )
 
@@ -55,23 +61,23 @@ func New() (*Server, error) {
 		return nil, err
 	}
 	connection := rabbitclient.NewRabbitClientConnection(configConfig)
-	publisherTransactionMessage := msgqueue.NewTransactionProducer(configConfig, connection)
+	publisherTransactionMessage := publisher.NewTransactionProducer(configConfig, connection)
 	voucherServiceClient := vouchergrpc.NewVoucherClientGrpcImpl(configConfig)
 	productServiceClient := productgrpc.NewProductGrpcClientImpl(configConfig)
 	deliveryServiceClient := deliverygrpc.NewDeliveryServiceGRPCClientImpl(configConfig)
 	userServiceClient := usergrpc.NewUserServiceClientGRPCImpl(configConfig)
 	service := storeserv.NewStoreServiceAdapter(configConfig)
-	orderCommandUsecase := ordercommand.NewOrderCommmandService(configConfig, orderRepository, commissionRepository, cacheV9CacheEngine, publisherTransactionMessage, voucherServiceClient, productServiceClient, deliveryServiceClient, userServiceClient, service)
-	orderQueryUsecase := orderquery.NewOrderQueryService(orderRepository)
+	orderCommandUsecase := orderCmd.NewOrderCommmandService(configConfig, orderRepository, commissionRepository, cacheV9CacheEngine, publisherTransactionMessage, voucherServiceClient, productServiceClient, deliveryServiceClient, userServiceClient, service)
+	orderQueryUsecase := orderQuery.NewOrderQueryService(orderRepository)
 	orderApiHandler := order2.NewOrderHandler(orderCommandUsecase, orderQueryUsecase)
-	orderStatisticUsecase := orderstatistic.NewOrderStatisicService(orderRepository)
+	orderStatisticUsecase := statisticQuery.NewOrderStatisicService(orderRepository)
 	orderStatisticApiHandler := order2.NewStatisticHandler(orderStatisticUsecase)
 	authservService := authserv.NewAuthServHttpAdapter(configConfig)
 	deliveryservService := deliveryserv.NewDeliServHttpAdapter(configConfig)
 	authenticationMiddleware := auth.NewAuthMiddleware(authservService, service, deliveryservService, configConfig, cacheV9CacheEngine)
 	middlewareMiddleware := middleware.NewMiddleware(authenticationMiddleware)
 	orderRouter := router.NewOrderRouter(orderApiHandler, orderStatisticApiHandler, middlewareMiddleware)
-	purchaseReplySubscriber := worker.NewPurchaseReplySubscriber(configConfig, connection, orderCommandUsecase)
+	purchaseReplySubscriber := subscriber.NewPurchaseReplySubscriber(configConfig, connection, orderCommandUsecase)
 	server := NewServer(configConfig, orderRouter, purchaseReplySubscriber)
 	return server, nil
 }
@@ -81,24 +87,47 @@ func New() (*Server, error) {
 type Server struct {
 	app       *fiber.App
 	cfg       *config.Config
-	orderSubs *worker.PurchaseReplySubscriber
+	orderSubs *subscriber.PurchaseReplySubscriber
 }
 
 func NewServer(
 	cfg *config.Config,
 	orderRouter router.OrderRouter,
-	orderSubs *worker.PurchaseReplySubscriber) *Server {
+	orderSubs *subscriber.PurchaseReplySubscriber) *Server {
 
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  cfg.Server.ReadTimeout,
 		WriteTimeout: cfg.Server.WriteTimeout,
-		JSONDecoder:  json.Unmarshal,
-		JSONEncoder:  json.Marshal,
+		JSONDecoder:  sonic.Unmarshal,
+		JSONEncoder:  sonic.Marshal,
 		ErrorHandler: errors.CustomErrorHandler,
 	})
 
+	basicAuthConfig := basicauth.Config{
+		Users: map[string]string{
+			cfg.Metrics.Username: cfg.Metrics.Password,
+		},
+	}
+
+	h, _ := healthcheck.NewHealthCheckService(cfg)
+	app.Get("/status", basicauth.New(basicAuthConfig), adaptor.HTTPHandlerFunc(h.HandlerFunc))
+	app.Use(healthcheck2.New())
+	app.Use(healthcheck2.New(healthcheck2.Config{
+		LivenessProbe: func(c *fiber.Ctx) bool {
+			return true
+		},
+		LivenessEndpoint: "/live",
+		ReadinessProbe: func(c *fiber.Ctx) bool {
+			result := h.Measure(c.Context())
+			return result.Status == health.StatusOK
+		},
+		ReadinessEndpoint: "/ready",
+	}))
+
+	app.Get(cfg.Metrics.FiberURL, basicauth.New(basicAuthConfig), monitor.New(monitor.Config{Title: "Orders Services Metrics Page (Fiber)"}))
+
 	prometheus := fiberprometheus.New("latipe-order-service-v2")
-	prometheus.RegisterAt(app, "/metrics")
+	prometheus.RegisterAt(app, cfg.Metrics.PrometheusURL, basicauth.New(basicAuthConfig))
 	app.Use(prometheus.Middleware)
 
 	app.Use(logger.New())
@@ -134,6 +163,6 @@ func (serv Server) Config() *config.Config {
 	return serv.cfg
 }
 
-func (serv Server) OrderTransactionSubscriber() *worker.PurchaseReplySubscriber {
+func (serv Server) OrderTransactionSubscriber() *subscriber.PurchaseReplySubscriber {
 	return serv.orderSubs
 }
