@@ -2,7 +2,7 @@ package cacheV8
 
 import (
 	"context"
-	"encoding/json"
+	"github.com/bytedance/sonic"
 	"github.com/go-redis/redis/v8"
 	"github.com/gofiber/fiber/v2/log"
 	"latipe-order-service-v2/internal/common/errors"
@@ -73,7 +73,7 @@ func (c *CacheEngine) Get(key string) ([]byte, error) {
 // Set stores the given value for the given key along with a
 func (c *CacheEngine) Set(key string, val interface{}, ttl time.Duration) error {
 
-	data, err := json.Marshal(val)
+	data, err := sonic.Marshal(val)
 	if err != nil {
 		return err
 	}
