@@ -1,0 +1,818 @@
+basePath: /api/v2/order
+definitions:
+  order.BaseHeader:
+    properties:
+      bearerToken:
+        type: string
+    type: object
+  order.CancelOrderRequest:
+    properties:
+      header:
+        $ref: '#/definitions/order.BaseHeader'
+      message:
+        type: string
+      order_id:
+        type: string
+      userId:
+        type: string
+    required:
+    - message
+    - order_id
+    type: object
+  order.CreateOrderRequest:
+    properties:
+      address:
+        $ref: '#/definitions/order.OrderAddress'
+      header:
+        $ref: '#/definitions/order.BaseHeader'
+      payment_method:
+        type: integer
+      promotion_data:
+        $ref: '#/definitions/order.PromotionData'
+      store_orders:
+        items:
+          $ref: '#/definitions/order.StoreOrder'
+        type: array
+      userRequest:
+        $ref: '#/definitions/order.UserRequest'
+    required:
+    - address
+    - payment_method
+    type: object
+  order.Delivery:
+    properties:
+      delivery_id:
+        type: string
+    required:
+    - delivery_id
+    type: object
+  order.FreeShippingVoucherInfo:
+    properties:
+      voucher_code:
+        type: string
+    type: object
+  order.OrderAddress:
+    properties:
+      address_id:
+        type: string
+    required:
+    - address_id
+    type: object
+  order.OrderItems:
+    properties:
+      cart_id:
+        type: string
+      option_id:
+        type: string
+      price:
+        type: integer
+      product_id:
+        type: string
+      quantity:
+        type: integer
+    required:
+    - price
+    - product_id
+    - quantity
+    type: object
+  order.PaymentVoucherInfo:
+    properties:
+      voucher_code:
+        type: string
+    required:
+    - voucher_code
+    type: object
+  order.PromotionData:
+    properties:
+      free_shipping_voucher:
+        $ref: '#/definitions/order.FreeShippingVoucherInfo'
+      payment_voucher:
+        $ref: '#/definitions/order.PaymentVoucherInfo'
+      shop_vouchers:
+        items:
+          $ref: '#/definitions/order.ShopVoucherInfo'
+        type: array
+    type: object
+  order.ShopVoucherInfo:
+    properties:
+      store_id:
+        type: string
+      voucher_code:
+        type: string
+    required:
+    - store_id
+    - voucher_code
+    type: object
+  order.StoreOrder:
+    properties:
+      cart_ids:
+        items:
+          type: string
+        type: array
+      delivery:
+        $ref: '#/definitions/order.Delivery'
+      order_items:
+        items:
+          $ref: '#/definitions/order.OrderItems'
+        type: array
+      store_id:
+        type: string
+    required:
+    - delivery
+    - order_items
+    - store_id
+    type: object
+  order.UpdateOrderStatusRequest:
+    properties:
+      order_id:
+        type: string
+      role:
+        type: string
+      status:
+        type: integer
+      userId:
+        type: string
+    type: object
+  order.UserRequest:
+    properties:
+      user_id:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:5000
+info:
+  contact: {}
+  description: This is a server for Latipe Order Service.
+  title: API Documentation
+  version: "2.0"
+paths:
+  /admin/order/cancel:
+    post:
+      consumes:
+      - application/json
+      description: Admin Cancel Order
+      parameters:
+      - description: Authorization header
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Cancel Order Request
+        in: body
+        name: CancelOrderRequest
+        required: true
+        schema:
+          $ref: '#/definitions/order.CancelOrderRequest'
+      produces:
+      - application/json
+      responses: {}
+      summary: Admin Cancel Order
+      tags:
+      - Order
+  /admin/order/count:
+    get:
+      consumes:
+      - application/json
+      description: Admin Counting Order
+      parameters:
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Sort
+        in: query
+        name: sort
+        type: string
+      - description: Order
+        in: query
+        name: order
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Admin Counting Order
+      tags:
+      - Order
+  /admin/statistic/total-commission-order-in-day:
+    get:
+      consumes:
+      - application/json
+      description: Get total commission order in day
+      parameters:
+      - description: date
+        in: query
+        name: date
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Get total commission order in day
+      tags:
+      - Statistic
+  /admin/statistic/total-commission-order-in-month:
+    get:
+      consumes:
+      - application/json
+      description: Get total commission order in month
+      parameters:
+      - description: date
+        in: query
+        name: date
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Get total commission order in month
+      tags:
+      - Statistic
+  /admin/statistic/total-order-in-day:
+    get:
+      consumes:
+      - application/json
+      description: Get total order in system in day
+      parameters:
+      - description: date
+        in: query
+        name: date
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Get total order in system in day
+      tags:
+      - Statistic
+  /admin/statistic/total-order-in-month:
+    get:
+      consumes:
+      - application/json
+      description: Get total order in system in month
+      parameters:
+      - description: date
+        in: query
+        name: date
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Get total order in system in month
+      tags:
+      - Statistic
+  /admin/statistic/total-order-in-year:
+    get:
+      consumes:
+      - application/json
+      description: Get total order in system in year
+      parameters:
+      - description: date
+        in: query
+        name: date
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Get total order in system in year
+      tags:
+      - Statistic
+  /delivery/order:
+    get:
+      consumes:
+      - application/json
+      description: Get Orders By Delivery
+      parameters:
+      - description: Authorization header
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Sort
+        in: query
+        name: sort
+        type: string
+      - description: Order
+        in: query
+        name: order
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Get Orders By Delivery
+      tags:
+      - Order
+  /delivery/order/{orderId}:
+    get:
+      consumes:
+      - application/json
+      description: Delivery Get Order By ID
+      parameters:
+      - description: Order ID
+        in: path
+        name: orderId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Delivery Get Order By ID
+      tags:
+      - Order
+  /delivery/order/count:
+    get:
+      consumes:
+      - application/json
+      description: Delivery Counting Order
+      parameters:
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Sort
+        in: query
+        name: sort
+        type: string
+      - description: Order
+        in: query
+        name: order
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Delivery Counting Order
+      tags:
+      - Order
+  /delivery/order/status:
+    put:
+      consumes:
+      - application/json
+      description: Update Order Status By Delivery
+      parameters:
+      - description: Authorization header
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Update Order Status Request
+        in: body
+        name: UpdateOrderStatusRequest
+        required: true
+        schema:
+          $ref: '#/definitions/order.UpdateOrderStatusRequest'
+      produces:
+      - application/json
+      responses: {}
+      summary: Update Order Status By Delivery
+      tags:
+      - Order
+  /internal/order/{orderId}:
+    get:
+      consumes:
+      - application/json
+      description: Internal Get Order By Order ID
+      parameters:
+      - description: Order ID
+        in: path
+        name: orderId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Internal Get Order By Order ID
+      tags:
+      - Order
+  /order/store/search:
+    get:
+      consumes:
+      - application/json
+      description: Search Order ID By Keyword
+      parameters:
+      - description: Authorization header
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Sort
+        in: query
+        name: sort
+        type: string
+      - description: Order
+        in: query
+        name: order
+        type: string
+      - description: Keyword
+        in: query
+        name: keyword
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Search Order ID By Keyword
+      tags:
+      - Order
+  /role/order:
+    get:
+      consumes:
+      - application/json
+      description: List Of Order
+      parameters:
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Sort
+        in: query
+        name: sort
+        type: string
+      - description: Order
+        in: query
+        name: order
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: List Of Order
+      tags:
+      - Order
+  /role/order/{orderId}:
+    get:
+      consumes:
+      - application/json
+      description: Get By Order ID
+      parameters:
+      - description: Order ID
+        in: path
+        name: orderId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Get By Order ID
+      tags:
+      - Order
+  /role/order/status:
+    put:
+      consumes:
+      - application/json
+      description: Update Order Status
+      parameters:
+      - description: Authorization header
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Update Order Status Request
+        in: body
+        name: UpdateOrderStatusRequest
+        required: true
+        schema:
+          $ref: '#/definitions/order.UpdateOrderStatusRequest'
+      produces:
+      - application/json
+      responses: {}
+      summary: Update Order Status
+      tags:
+      - Order
+  /store/order:
+    get:
+      consumes:
+      - application/json
+      description: Get My Store Order
+      parameters:
+      - description: Authorization header
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Sort
+        in: query
+        name: sort
+        type: string
+      - description: Order
+        in: query
+        name: order
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Get My Store Order
+      tags:
+      - Order
+  /store/order/{orderId}:
+    get:
+      consumes:
+      - application/json
+      description: Get Store Order Detail
+      parameters:
+      - description: Order ID
+        in: path
+        name: orderId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Get Store Order Detail
+      tags:
+      - Order
+  /store/order/count:
+    get:
+      consumes:
+      - application/json
+      description: Store Counting Order
+      parameters:
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Sort
+        in: query
+        name: sort
+        type: string
+      - description: Order
+        in: query
+        name: order
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Store Counting Order
+      tags:
+      - Order
+  /store/order/status:
+    put:
+      consumes:
+      - application/json
+      description: Update Order Status By Store
+      parameters:
+      - description: Authorization header
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Update Order Status Request
+        in: body
+        name: UpdateOrderStatusRequest
+        required: true
+        schema:
+          $ref: '#/definitions/order.UpdateOrderStatusRequest'
+      produces:
+      - application/json
+      responses: {}
+      summary: Update Order Status By Store
+      tags:
+      - Order
+  /store/statistic/total-commission-order-in-month:
+    get:
+      consumes:
+      - application/json
+      description: Get total commission order in month of store
+      parameters:
+      - description: date
+        in: query
+        name: date
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Get total commission order in month of store
+      tags:
+      - Statistic
+  /store/statistic/total-order-in-day:
+    get:
+      consumes:
+      - application/json
+      description: Get total order in day of store
+      parameters:
+      - description: date
+        in: query
+        name: date
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Get total order in day of store
+      tags:
+      - Statistic
+  /store/statistic/total-order-in-month:
+    get:
+      consumes:
+      - application/json
+      description: Get total order in month of store
+      parameters:
+      - description: date
+        in: query
+        name: date
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Get total order in month of store
+      tags:
+      - Statistic
+  /store/statistic/total-order-in-year:
+    get:
+      consumes:
+      - application/json
+      description: Get total order in year of store
+      parameters:
+      - description: date
+        in: query
+        name: date
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Get total order in year of store
+      tags:
+      - Statistic
+  /user/order:
+    get:
+      consumes:
+      - application/json
+      description: Get My Order
+      parameters:
+      - description: Authorization header
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Sort
+        in: query
+        name: sort
+        type: string
+      - description: Order
+        in: query
+        name: order
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: Get My Order
+      tags:
+      - Order
+    post:
+      consumes:
+      - application/json
+      description: Create Order
+      parameters:
+      - description: Authorization header
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Create Order Request
+        in: body
+        name: CreateOrderRequest
+        required: true
+        schema:
+          $ref: '#/definitions/order.CreateOrderRequest'
+      produces:
+      - application/json
+      responses: {}
+      summary: Create Order
+      tags:
+      - Order
+  /user/order/{orderId}:
+    get:
+      consumes:
+      - application/json
+      description: User Get Order By ID
+      parameters:
+      - description: Order ID
+        in: path
+        name: orderId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: User Get Order By ID
+      tags:
+      - Order
+  /user/order/cancel:
+    post:
+      consumes:
+      - application/json
+      description: User Cancel Order
+      parameters:
+      - description: Authorization header
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Cancel Order Request
+        in: body
+        name: CancelOrderRequest
+        required: true
+        schema:
+          $ref: '#/definitions/order.CancelOrderRequest'
+      produces:
+      - application/json
+      responses: {}
+      summary: User Cancel Order
+      tags:
+      - Order
+  /user/order/count:
+    get:
+      consumes:
+      - application/json
+      description: User Counting Order
+      parameters:
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Sort
+        in: query
+        name: sort
+        type: string
+      - description: Order
+        in: query
+        name: order
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      summary: User Counting Order
+      tags:
+      - Order
+  /user/order/refund:
+    post:
+      consumes:
+      - application/json
+      description: User Refund Order
+      parameters:
+      - description: Authorization header
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Cancel Order Request
+        in: body
+        name: CancelOrderRequest
+        required: true
+        schema:
+          $ref: '#/definitions/order.CancelOrderRequest'
+      produces:
+      - application/json
+      responses: {}
+      summary: User Refund Order
+      tags:
+      - Order
+schemes:
+- http
+swagger: "2.0"

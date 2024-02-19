@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
+	_ "latipe-order-service-v2/docs"
 	"latipe-order-service-v2/internal/common/errors"
 	"latipe-order-service-v2/internal/common/responses"
 	dto "latipe-order-service-v2/internal/domain/dto/order"
@@ -18,6 +19,12 @@ import (
 	"strings"
 )
 
+// @title API Documentation
+// @version 2.0
+// @description This is a server for Latipe Order Service.
+// @host localhost:5000
+// @BasePath /api/v2/order
+// @schemes http
 type orderApiHandler struct {
 	orderCommandServ orderCmd.OrderCommandUsecase
 	orderQueryServ   orderQuery.OrderQueryUsecase
@@ -30,6 +37,14 @@ func NewOrderHandler(orderCommandServ orderCmd.OrderCommandUsecase, orderQuerySe
 	}
 }
 
+// @Summary Create Order
+// @Description Create Order
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Authorization header"
+// @Param CreateOrderRequest body CreateOrderRequest true "Create Order Request"
+// @Router /user/order [post]
 func (o orderApiHandler) CreateOrder(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 
@@ -72,6 +87,17 @@ func (o orderApiHandler) CreateOrder(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
+// @Summary Get My Order
+// @Description Get My Order
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Authorization header"
+// @Param page query int false "Page"
+// @Param limit query int false "Limit"
+// @Param sort query string false "Sort"
+// @Param order query string false "Order"
+// @Router /user/order [get]
 func (o orderApiHandler) GetMyOrder(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 
@@ -101,6 +127,14 @@ func (o orderApiHandler) GetMyOrder(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
+// @Summary User Cancel Order
+// @Description User Cancel Order
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Authorization header"
+// @Param CancelOrderRequest body CancelOrderRequest true "Cancel Order Request"
+// @Router /user/order/cancel [post]
 func (o orderApiHandler) UserCancelOrder(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 
@@ -126,6 +160,14 @@ func (o orderApiHandler) UserCancelOrder(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
+// @Summary User Refund Order
+// @Description User Refund Order
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Authorization header"
+// @Param CancelOrderRequest body CancelOrderRequest true "Cancel Order Request"
+// @Router /user/order/refund [post]
 func (o orderApiHandler) UserRefundOrder(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 
@@ -151,6 +193,14 @@ func (o orderApiHandler) UserRefundOrder(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
+// @Summary Admin Cancel Order
+// @Description Admin Cancel Order
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Authorization header"
+// @Param CancelOrderRequest body CancelOrderRequest true "Cancel Order Request"
+// @Router /admin/order/cancel [post]
 func (o orderApiHandler) AdminCancelOrder(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 
@@ -176,6 +226,14 @@ func (o orderApiHandler) AdminCancelOrder(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
+// @Summary Update Order Status
+// @Description Update Order Status
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Authorization header"
+// @Param UpdateOrderStatusRequest body UpdateOrderStatusRequest true "Update Order Status Request"
+// @Router /role/order/status [put]
 func (o orderApiHandler) UpdateOrderStatus(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 
@@ -206,6 +264,16 @@ func (o orderApiHandler) UpdateOrderStatus(ctx *fiber.Ctx) error {
 	return responses.DefaultSuccess.JSON(ctx)
 }
 
+// @Summary List Of Order
+// @Description List Of Order
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param page query int false "Page"
+// @Param limit query int false "Limit"
+// @Param sort query string false "Sort"
+// @Param order query string false "Order"
+// @Router /role/order [get]
 func (o orderApiHandler) ListOfOrder(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 
@@ -231,6 +299,13 @@ func (o orderApiHandler) ListOfOrder(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
+// @Summary Get By Order ID
+// @Description Get By Order ID
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param orderId path string true "Order ID"
+// @Router /role/order/{orderId} [get]
 func (o orderApiHandler) GetByOrderId(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 	req := new(dto.GetOrderByIDRequest)
@@ -253,6 +328,13 @@ func (o orderApiHandler) GetByOrderId(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
+// @Summary User Get Order By ID
+// @Description User Get Order By ID
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param orderId path string true "Order ID"
+// @Router /user/order/{orderId} [get]
 func (o orderApiHandler) UserGetOrderByID(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 	req := new(dto.GetOrderByIDRequest)
@@ -288,6 +370,13 @@ func (o orderApiHandler) UserGetOrderByID(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
+// @Summary Delivery Get Order By ID
+// @Description Delivery Get Order By ID
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param orderId path string true "Order ID"
+// @Router /delivery/order/{orderId} [get]
 func (o orderApiHandler) DeliveryGetOrderByID(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 	req := new(dto.GetOrderByIDRequest)
@@ -323,6 +412,13 @@ func (o orderApiHandler) DeliveryGetOrderByID(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
+// @Summary Internal Get Order By Order ID
+// @Description Internal Get Order By Order ID
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param orderId path string true "Order ID"
+// @Router /internal/order/{orderId} [get]
 func (o orderApiHandler) InternalGetOrderByOrderID(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 	req := internalDTO.GetOrderRatingItemRequest{}
@@ -345,6 +441,17 @@ func (o orderApiHandler) InternalGetOrderByOrderID(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
+// @Summary Get My Store Order
+// @Description Get My Store Order
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Authorization header"
+// @Param page query int false "Page"
+// @Param limit query int false "Limit"
+// @Param sort query string false "Sort"
+// @Param order query string false "Order"
+// @Router /store/order [get]
 func (o orderApiHandler) GetMyStoreOrder(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 
@@ -377,6 +484,13 @@ func (o orderApiHandler) GetMyStoreOrder(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
+// @Summary Get Store Order Detail
+// @Description Get Store Order Detail
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param orderId path string true "Order ID"
+// @Router /store/order/{orderId} [get]
 func (o orderApiHandler) GetStoreOrderDetail(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 
@@ -405,6 +519,14 @@ func (o orderApiHandler) GetStoreOrderDetail(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
+// @Summary Update Order Status By Store
+// @Description Update Order Status By Store
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Authorization header"
+// @Param UpdateOrderStatusRequest body UpdateOrderStatusRequest true "Update Order Status Request"
+// @Router /store/order/status [put]
 func (o orderApiHandler) UpdateOrderStatusByStore(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 
@@ -435,6 +557,14 @@ func (o orderApiHandler) UpdateOrderStatusByStore(ctx *fiber.Ctx) error {
 	return data.JSON(ctx)
 }
 
+// @Summary Update Order Status By Delivery
+// @Description Update Order Status By Delivery
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Authorization header"
+// @Param UpdateOrderStatusRequest body UpdateOrderStatusRequest true "Update Order Status Request"
+// @Router /delivery/order/status [put]
 func (o orderApiHandler) UpdateOrderStatusByDelivery(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 
@@ -469,6 +599,17 @@ func (o orderApiHandler) UpdateOrderStatusByDelivery(ctx *fiber.Ctx) error {
 	return data.JSON(ctx)
 }
 
+// @Summary Get Orders By Delivery
+// @Description Get Orders By Delivery
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Authorization header"
+// @Param page query int false "Page"
+// @Param limit query int false "Limit"
+// @Param sort query string false "Sort"
+// @Param order query string false "Order"
+// @Router /delivery/order [get]
 func (o orderApiHandler) GetOrdersByDelivery(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 
@@ -501,6 +642,18 @@ func (o orderApiHandler) GetOrdersByDelivery(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
+// @Summary Search Order ID By Keyword
+// @Description Search Order ID By Keyword
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Authorization header"
+// @Param page query int false "Page"
+// @Param limit query int false "Limit"
+// @Param sort query string false "Sort"
+// @Param order query string false "Order"
+// @Param keyword query string true "Keyword"
+// @Router /order/store/search [get]
 func (o orderApiHandler) SearchOrderIdByKeyword(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 
@@ -537,6 +690,16 @@ func (o orderApiHandler) SearchOrderIdByKeyword(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
+// @Summary Admin Counting Order
+// @Description Admin Counting Order
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param page query int false "Page"
+// @Param limit query int false "Limit"
+// @Param sort query string false "Sort"
+// @Param order query string false "Order"
+// @Router /admin/order/count [get]
 func (o orderApiHandler) AdminCountingOrder(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 
@@ -559,6 +722,16 @@ func (o orderApiHandler) AdminCountingOrder(ctx *fiber.Ctx) error {
 	return resp.JSON(ctx)
 }
 
+// @Summary User Counting Order
+// @Description User Counting Order
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param page query int false "Page"
+// @Param limit query int false "Limit"
+// @Param sort query string false "Sort"
+// @Param order query string false "Order"
+// @Router /user/order/count [get]
 func (o orderApiHandler) UserCountingOrder(ctx *fiber.Ctx) error {
 
 	context := ctx.Context()
@@ -586,6 +759,16 @@ func (o orderApiHandler) UserCountingOrder(ctx *fiber.Ctx) error {
 
 }
 
+// @Summary Store Counting Order
+// @Description Store Counting Order
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param page query int false "Page"
+// @Param limit query int false "Limit"
+// @Param sort query string false "Sort"
+// @Param order query string false "Order"
+// @Router /store/order/count [get]
 func (o orderApiHandler) StoreCountingOrder(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 
@@ -612,6 +795,16 @@ func (o orderApiHandler) StoreCountingOrder(ctx *fiber.Ctx) error {
 
 }
 
+// @Summary Delivery Counting Order
+// @Description Delivery Counting Order
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param page query int false "Page"
+// @Param limit query int false "Limit"
+// @Param sort query string false "Sort"
+// @Param order query string false "Order"
+// @Router /delivery/order/count [get]
 func (o orderApiHandler) DeliveryCountingOrder(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 
