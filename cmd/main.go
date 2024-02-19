@@ -25,6 +25,9 @@ func main() {
 	wg.Add(1)
 	go serv.OrderTransactionSubscriber().ListenOrderEventQueue(&wg)
 
+	wg.Add(1)
+	go serv.RatingItemSubscriber().ListenRatingRatingQueue(&wg)
+
 	//api handler
 	wg.Add(1)
 	go func() {

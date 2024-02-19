@@ -39,15 +39,17 @@ import (
 	"latipe-order-service-v2/internal/services"
 	"latipe-order-service-v2/internal/subscriber"
 	"latipe-order-service-v2/internal/subscriber/purchase"
+	"latipe-order-service-v2/internal/subscriber/rating"
 	"latipe-order-service-v2/pkg/cache"
 	healthcheckService "latipe-order-service-v2/pkg/healthcheck"
 	"latipe-order-service-v2/pkg/rabbitclient"
 )
 
 type Server struct {
-	app       *fiber.App
-	cfg       *config.Config
-	orderSubs *purchase.PurchaseReplySubscriber
+	app        *fiber.App
+	cfg        *config.Config
+	orderSubs  *purchase.PurchaseReplySubscriber
+	ratingSubs *rating.RatingItemSubscriber
 }
 
 func New() (*Server, error) {
@@ -81,7 +83,8 @@ func NewServer(
 	deliveryRouter deliveryRouter.DeliveryOrderRouter,
 	statisticRouter statisticRouter.OrderStatisticRouter,
 	internalRouter internalRouter.InternalOrderRouter,
-	orderSubs *purchase.PurchaseReplySubscriber) *Server {
+	orderSubs *purchase.PurchaseReplySubscriber,
+	ratingSubs *rating.RatingItemSubscriber) *Server {
 
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  cfg.Server.ReadTimeout,
@@ -115,7 +118,7 @@ func NewServer(
 	}))
 
 	//swagger
-	app.Get("/swagger/*", swagger.HandlerDefault) // default
+	app.Get("/swagger/*", basicauth.New(basicAuthConfig), swagger.HandlerDefault) // default
 
 	//fiber dashboard
 	app.Get(cfg.Metrics.FiberURL, basicauth.New(basicAuthConfig),
@@ -152,9 +155,10 @@ func NewServer(
 	internalRouter.Init(&orders)
 
 	return &Server{
-		cfg:       cfg,
-		app:       app,
-		orderSubs: orderSubs,
+		cfg:        cfg,
+		app:        app,
+		orderSubs:  orderSubs,
+		ratingSubs: ratingSubs,
 	}
 }
 
@@ -168,4 +172,8 @@ func (serv Server) Config() *config.Config {
 
 func (serv Server) OrderTransactionSubscriber() *purchase.PurchaseReplySubscriber {
 	return serv.orderSubs
+}
+
+func (serv Server) RatingItemSubscriber() *rating.RatingItemSubscriber {
+	return serv.ratingSubs
 }

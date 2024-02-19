@@ -43,6 +43,7 @@ import (
 	"latipe-order-service-v2/internal/services/queries/orderQuery"
 	"latipe-order-service-v2/internal/services/queries/statisticQuery"
 	"latipe-order-service-v2/internal/subscriber/purchase"
+	"latipe-order-service-v2/internal/subscriber/rating"
 	"latipe-order-service-v2/pkg/cache"
 	"latipe-order-service-v2/pkg/healthcheck"
 	"latipe-order-service-v2/pkg/rabbitclient"
@@ -89,22 +90,25 @@ func New() (*Server, error) {
 	orderStatisticRouter := statisticRouter.NewStatisticOrderRouter(orderStatisticApiHandler, middlewareMiddleware)
 	internalOrderRouter := internalRouter.NewInternalOrderRouter(orderApiHandler, orderStatisticApiHandler, middlewareMiddleware)
 	purchaseReplySubscriber := purchase.NewPurchaseReplySubscriber(configConfig, connection, orderCommandUsecase)
-	server := NewServer(configConfig, adminOrderRouter, userOrderRouter, storeOrderRouter, deliveryOrderRouter, orderStatisticRouter, internalOrderRouter, purchaseReplySubscriber)
+	ratingItemSubscriber := rating.NewRatingItemSubscriber(configConfig, connection, orderCommandUsecase)
+	server := NewServer(configConfig, adminOrderRouter, userOrderRouter, storeOrderRouter, deliveryOrderRouter, orderStatisticRouter, internalOrderRouter, purchaseReplySubscriber, ratingItemSubscriber)
 	return server, nil
 }
 
 // server.go:
 
 type Server struct {
-	app       *fiber.App
-	cfg       *config.Config
-	orderSubs *purchase.PurchaseReplySubscriber
+	app        *fiber.App
+	cfg        *config.Config
+	orderSubs  *purchase.PurchaseReplySubscriber
+	ratingSubs *rating.RatingItemSubscriber
 }
 
 func NewServer(
 	cfg *config.Config, adminRouter2 adminRouter.AdminOrderRouter, userRouter2 userRouter.UserOrderRouter, storeRouter2 storeRouter.StoreOrderRouter, deliveryRouter2 deliveryRouter.DeliveryOrderRouter, statisticRouter2 statisticRouter.OrderStatisticRouter, internalRouter2 internalRouter.InternalOrderRouter,
 
-	orderSubs *purchase.PurchaseReplySubscriber) *Server {
+	orderSubs *purchase.PurchaseReplySubscriber,
+	ratingSubs *rating.RatingItemSubscriber) *Server {
 
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  cfg.Server.ReadTimeout,
@@ -135,7 +139,7 @@ func NewServer(
 		ReadinessEndpoint: "/ready",
 	}))
 
-	app.Get("/swagger/*", swagger.HandlerDefault)
+	app.Get("/swagger/*", basicauth.New(basicAuthConfig), swagger.HandlerDefault)
 
 	app.Get(cfg.Metrics.FiberURL, basicauth.New(basicAuthConfig), monitor.New(monitor.Config{Title: "Orders Services Metrics Page (Fiber)"}))
 
@@ -173,9 +177,10 @@ func NewServer(
 		Init(&orders)
 
 	return &Server{
-		cfg:       cfg,
-		app:       app,
-		orderSubs: orderSubs,
+		cfg:        cfg,
+		app:        app,
+		orderSubs:  orderSubs,
+		ratingSubs: ratingSubs,
 	}
 }
 
@@ -189,4 +194,8 @@ func (serv Server) Config() *config.Config {
 
 func (serv Server) OrderTransactionSubscriber() *purchase.PurchaseReplySubscriber {
 	return serv.orderSubs
+}
+
+func (serv Server) RatingItemSubscriber() *rating.RatingItemSubscriber {
+	return serv.ratingSubs
 }
