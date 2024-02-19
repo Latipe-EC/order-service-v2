@@ -51,6 +51,10 @@ RabbitMQ:
     PublishRoutingKey: order.transaction.commit
     ReplyRoutingKey: order.transaction.reply
 
+  RatingReplyEvent:
+    Exchange: rating_exchange
+    RoutingKey: rating_routing_key
+    Queue: internal.rating
 
 AdapterService:
   AuthService:

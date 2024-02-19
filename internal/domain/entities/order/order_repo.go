@@ -9,6 +9,7 @@ import (
 type OrderRepository interface {
 	FindByItemId(ctx context.Context, itemId string) (*OrderItem, error)
 	FindByID(ctx context.Context, orderId string) (*Order, error)
+	FindByIdForUpdate(ctx context.Context, orderId string) (*Order, error)
 	FindOrderByStoreID(ctx context.Context, storeId string, query *pagable.Query, keyword string) ([]Order, error)
 	FindOrderByDelivery(ctx context.Context, deliID string, keyword string, query *pagable.Query) ([]Order, error)
 	FindAll(ctx context.Context, query *pagable.Query) ([]Order, error)
@@ -20,6 +21,7 @@ type OrderRepository interface {
 	Save(ctx context.Context, order *Order) error
 	Update(ctx context.Context, order Order) error
 	UpdateStatus(ctx context.Context, orderID string, status int, message ...string) error
+	UpdateOrderRating(ctx context.Context, itemId string, ratingId string) error
 	UpdateOrderItem(ctx context.Context, orderItem string, status int) error
 	Total(ctx context.Context, query *pagable.Query) (int, error)
 	UserQueryTotal(ctx context.Context, userId string, query *pagable.Query) (int, error)

@@ -8,7 +8,7 @@ import (
 )
 
 var Set = wire.NewSet(
-	orderCmd.NewOrderCommmandService,
+	orderCmd.NewOrderCommandService,
 	orderQuery.NewOrderQueryService,
 	statisticQuery.NewOrderStatisicService,
 )

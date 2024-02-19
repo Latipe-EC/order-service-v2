@@ -106,9 +106,16 @@ type Mongodb struct {
 }
 
 type RabbitMQ struct {
-	SagaOrderEvent SagaOrderEvent
-	Connection     string
-	NameService    string
+	SagaOrderEvent   SagaOrderEvent
+	RatingReplyEvent RatingReplyEvent
+	Connection       string
+	NameService      string
+}
+
+type RatingReplyEvent struct {
+	Exchange   string
+	RoutingKey string
+	Queue      string
 }
 
 type SagaOrderEvent struct {

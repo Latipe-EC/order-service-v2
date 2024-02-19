@@ -10,7 +10,7 @@ const (
 )
 
 const (
-	ANONYMOUS     = "anomy"
+	ANONYMOUS     = "anonymous"
 	ROLE_USER     = "USER"
 	ROLE_ADMIN    = "ADMIN"
 	ROLE_STORE    = "STORE"

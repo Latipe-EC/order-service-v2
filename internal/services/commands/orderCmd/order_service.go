@@ -42,7 +42,7 @@ type orderCommandService struct {
 	storeServ storeserv.Service
 }
 
-func NewOrderCommmandService(cfg *config.Config, orderRepo order.OrderRepository,
+func NewOrderCommandService(cfg *config.Config, orderRepo order.OrderRepository,
 	commissionRepo order.CommissionRepository,
 	cacheEngine *cacheV9.CacheEngine, publisher *publishMsg.PublisherTransactionMessage,
 	voucherGrpc vouchergrpc.VoucherServiceClient, productGrpc productgrpc.ProductServiceClient,
@@ -310,7 +310,7 @@ func (o orderCommandService) saveOrderIntoDatabase(ctx context.Context, dto *ord
 }
 
 func (o orderCommandService) StoreUpdateOrderStatus(ctx context.Context, dto *store.StoreUpdateOrderStatusRequest) error {
-	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderID)
+	orderDAO, err := o.orderRepo.FindByIdForUpdate(ctx, dto.OrderID)
 	if err != nil {
 		return err
 	}
@@ -367,7 +367,7 @@ func (o orderCommandService) StoreUpdateOrderStatus(ctx context.Context, dto *st
 }
 
 func (o orderCommandService) DeliveryUpdateOrderStatus(ctx context.Context, dto delivery.UpdateOrderStatusRequest) error {
-	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderID)
+	orderDAO, err := o.orderRepo.FindByIdForUpdate(ctx, dto.OrderID)
 	if err != nil {
 		return err
 	}
@@ -414,7 +414,7 @@ func (o orderCommandService) DeliveryUpdateOrderStatus(ctx context.Context, dto 
 
 func (o orderCommandService) UpdateStatusOrder(ctx context.Context, dto *orderDTO.UpdateOrderStatusRequest) error {
 
-	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderID)
+	orderDAO, err := o.orderRepo.FindByIdForUpdate(ctx, dto.OrderID)
 	if err != nil {
 		return err
 	}
@@ -475,7 +475,7 @@ func (o orderCommandService) UpdateOrderStatusByReplyMessage(ctx context.Context
 }
 
 func (o orderCommandService) UserRefundOrder(ctx context.Context, dto *orderDTO.CancelOrderRequest) error {
-	dao, err := o.orderRepo.FindByID(ctx, dto.OrderID)
+	dao, err := o.orderRepo.FindByIdForUpdate(ctx, dto.OrderID)
 	if err != nil {
 		return err
 	}
@@ -538,7 +538,7 @@ func (o orderCommandService) UserCancelOrder(ctx context.Context, dto *orderDTO.
 }
 
 func (o orderCommandService) AdminCancelOrder(ctx context.Context, dto *orderDTO.CancelOrderRequest) error {
-	dao, err := o.orderRepo.FindByID(ctx, dto.OrderID)
+	dao, err := o.orderRepo.FindByIdForUpdate(ctx, dto.OrderID)
 	if err != nil {
 		return err
 	}
@@ -563,4 +563,13 @@ func (o orderCommandService) AdminCancelOrder(ctx context.Context, dto *orderDTO
 func (o orderCommandService) UpdateOrder(ctx context.Context, dto *orderDTO.UpdateOrderRequest) error {
 	//TODO implement me
 	panic("implement me")
+}
+
+func (o orderCommandService) UpdateRatingItem(ctx context.Context, data *msgDTO.RatingMessage) error {
+	err := o.orderRepo.UpdateOrderRating(ctx, data.OrderItemId, data.RatingId)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

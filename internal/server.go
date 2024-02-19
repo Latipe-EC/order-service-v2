@@ -1,7 +1,7 @@
+// this code to enable wire inject
 //go:build wireinject
 // +build wireinject
 
-// this code to enable wire inject
 package server
 
 import (
@@ -13,6 +13,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/healthcheck"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
+	"github.com/gofiber/swagger"
 	"github.com/google/wire"
 	"github.com/hellofresh/health-go/v5"
 	"latipe-order-service-v2/config"
@@ -29,8 +30,15 @@ import (
 	"latipe-order-service-v2/internal/middleware"
 	producer "latipe-order-service-v2/internal/publisher"
 	"latipe-order-service-v2/internal/router"
+	adminRouter "latipe-order-service-v2/internal/router/admin"
+	deliveryRouter "latipe-order-service-v2/internal/router/delivery"
+	internalRouter "latipe-order-service-v2/internal/router/internalRouter"
+	statisticRouter "latipe-order-service-v2/internal/router/statistic"
+	storeRouter "latipe-order-service-v2/internal/router/store"
+	userRouter "latipe-order-service-v2/internal/router/user"
 	"latipe-order-service-v2/internal/services"
 	"latipe-order-service-v2/internal/subscriber"
+	"latipe-order-service-v2/internal/subscriber/purchase"
 	"latipe-order-service-v2/pkg/cache"
 	healthcheckService "latipe-order-service-v2/pkg/healthcheck"
 	"latipe-order-service-v2/pkg/rabbitclient"
@@ -39,7 +47,7 @@ import (
 type Server struct {
 	app       *fiber.App
 	cfg       *config.Config
-	orderSubs *subscriber.PurchaseReplySubscriber
+	orderSubs *purchase.PurchaseReplySubscriber
 }
 
 func New() (*Server, error) {
@@ -67,8 +75,13 @@ func New() (*Server, error) {
 
 func NewServer(
 	cfg *config.Config,
-	orderRouter router.OrderRouter,
-	orderSubs *subscriber.PurchaseReplySubscriber) *Server {
+	adminRouter adminRouter.AdminOrderRouter,
+	userRouter userRouter.UserOrderRouter,
+	storeRouter storeRouter.StoreOrderRouter,
+	deliveryRouter deliveryRouter.DeliveryOrderRouter,
+	statisticRouter statisticRouter.OrderStatisticRouter,
+	internalRouter internalRouter.InternalOrderRouter,
+	orderSubs *purchase.PurchaseReplySubscriber) *Server {
 
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  cfg.Server.ReadTimeout,
@@ -101,6 +114,9 @@ func NewServer(
 		ReadinessEndpoint: "/ready",
 	}))
 
+	//swagger
+	app.Get("/swagger/*", swagger.HandlerDefault) // default
+
 	//fiber dashboard
 	app.Get(cfg.Metrics.FiberURL, basicauth.New(basicAuthConfig),
 		monitor.New(monitor.Config{Title: "Orders Services Metrics Page (Fiber)"}))
@@ -125,8 +141,15 @@ func NewServer(
 
 	api := app.Group("/api")
 	v2 := api.Group("/v2")
+	orders := v2.Group("/orders")
 
-	orderRouter.Init(&v2)
+	//init router
+	userRouter.Init(&orders)
+	storeRouter.Init(&orders)
+	adminRouter.Init(&orders)
+	deliveryRouter.Init(&orders)
+	statisticRouter.Init(&orders)
+	internalRouter.Init(&orders)
 
 	return &Server{
 		cfg:       cfg,
@@ -143,6 +166,6 @@ func (serv Server) Config() *config.Config {
 	return serv.cfg
 }
 
-func (serv Server) OrderTransactionSubscriber() *subscriber.PurchaseReplySubscriber {
+func (serv Server) OrderTransactionSubscriber() *purchase.PurchaseReplySubscriber {
 	return serv.orderSubs
 }

@@ -20,4 +20,6 @@ type OrderCommandUsecase interface {
 	UserCancelOrder(ctx context.Context, dto *orderDTO.CancelOrderRequest) error
 	UserRefundOrder(ctx context.Context, dto *orderDTO.CancelOrderRequest) error
 	AdminCancelOrder(ctx context.Context, dto *orderDTO.CancelOrderRequest) error
+
+	UpdateRatingItem(ctx context.Context, data *msgDTO.RatingMessage) error
 }

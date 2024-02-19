@@ -63,6 +63,21 @@ func (g GormRepository) FindByID(ctx context.Context, orderId string) (*entity.O
 	return &order, nil
 }
 
+func (g GormRepository) FindByIdForUpdate(ctx context.Context, orderId string) (*entity.Order, error) {
+	order := entity.Order{}
+
+	result := g.client.Exec(func(tx *gormF.DB) error {
+		return tx.Model(&entity.Order{}).
+			Preload("Delivery").
+			First(&order, "order_id = ?", orderId).Error
+	}, ctx)
+	if result != nil {
+		return nil, result
+	}
+
+	return &order, nil
+}
+
 func (g GormRepository) FindAll(ctx context.Context, query *pagable.Query) ([]entity.Order, error) {
 	var orders []entity.Order
 	whereState := query.ORMConditions().(string)
@@ -366,5 +381,18 @@ func (g GormRepository) UpdateOrderItem(ctx context.Context, orderItemID string,
 	if result != nil {
 		return result
 	}
+	return nil
+}
+
+func (g GormRepository) UpdateOrderRating(ctx context.Context, itemId string, ratingId string) error {
+	result := g.client.Exec(func(tx *gormF.DB) error {
+		return tx.Model(&entity.OrderItem{}).
+			Where("id = ?", itemId).Update("rating_id", ratingId).Error
+	}, ctx)
+
+	if result != nil {
+		return result
+	}
+
 	return nil
 }
