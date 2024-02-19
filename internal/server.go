@@ -103,18 +103,18 @@ func NewServer(
 
 	// Healthcheck
 	h, _ := healthcheckService.NewHealthCheckService(cfg)
-	app.Get("/status", basicauth.New(basicAuthConfig), adaptor.HTTPHandlerFunc(h.HandlerFunc))
+	app.Get("/health", basicauth.New(basicAuthConfig), adaptor.HTTPHandlerFunc(h.HandlerFunc))
 	app.Use(healthcheck.New())
 	app.Use(healthcheck.New(healthcheck.Config{
 		LivenessProbe: func(c *fiber.Ctx) bool {
 			return true
 		},
-		LivenessEndpoint: "/live",
+		LivenessEndpoint: "/liveness",
 		ReadinessProbe: func(c *fiber.Ctx) bool {
 			result := h.Measure(c.Context())
 			return result.Status == health.StatusOK
 		},
-		ReadinessEndpoint: "/ready",
+		ReadinessEndpoint: "/readiness",
 	}))
 
 	//swagger
