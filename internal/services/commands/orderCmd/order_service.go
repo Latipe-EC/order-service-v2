@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/google/uuid"
+	"golang.org/x/exp/slices"
 	"latipe-order-service-v2/config"
 	"latipe-order-service-v2/internal/common/errors"
 	orderDTO "latipe-order-service-v2/internal/domain/dto/order"
@@ -69,7 +70,6 @@ func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.Crea
 		return nil, err
 	}
 
-	shopVoucherMap := make(map[string]string)
 	cartMap := make(map[string][]string)
 	var orders []*order.Order
 	var totalOrdersAmount int64
@@ -82,10 +82,6 @@ func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.Crea
 
 	data := orderDTO.CreateOrderResponse{
 		CheckoutMessage: checkout,
-	}
-
-	for _, i := range dto.PromotionData.ShopVoucherInfo {
-		shopVoucherMap[i.StoreId] = i.VoucherCode
 	}
 
 	for _, i := range dto.StoreOrders {
@@ -136,7 +132,7 @@ func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.Crea
 
 	//handle promotion data
 	if dto.PromotionData != nil {
-		err = o.handlePromotionData(ctx, orders, dto.PromotionData, shopVoucherMap, totalOrdersAmount)
+		err = o.handlePromotionData(ctx, orders, dto.PromotionData, totalOrdersAmount)
 		if err != nil {
 			return nil, errors.OrderCannotCreated
 		}
@@ -247,7 +243,7 @@ func (o orderCommandService) initOrderData(dto *orderDTO.CreateOrderRequest,
 }
 
 func (o orderCommandService) handlePromotionData(ctx context.Context, orders []*order.Order,
-	promotionData *orderDTO.PromotionData, shopVoucherMap map[string]string, totalOrderAmount int64) error {
+	promotionData *orderDTO.PromotionData, totalOrderAmount int64) error {
 
 	var pVoucherResp *vouchergrpc.CheckoutVoucherResponse
 	var err error
@@ -284,9 +280,14 @@ func (o orderCommandService) handlePromotionData(ctx context.Context, orders []*
 		}
 
 		//store vouchers
-		if shopVoucherMap[entity.StoreId] != "" {
+		shopVoucherIndex := slices.IndexFunc(promotionData.ShopVoucherInfo, func(i orderDTO.ShopVoucherInfo) bool {
+			return i.StoreId == entity.StoreId
+		})
+		if shopVoucherIndex != -1 {
 
-			sVoucher := orderQuery.MappingShopVoucherRequest(entity, shopVoucherMap[entity.StoreId])
+			sVoucher := orderQuery.MappingShopVoucherRequest(entity,
+				promotionData.ShopVoucherInfo[shopVoucherIndex].VoucherCode)
+
 			voucherResp, err := o.voucherGrpc.CheckoutVoucherForPurchase(ctx, sVoucher)
 			if err != nil {
 				return err
@@ -305,7 +306,7 @@ func (o orderCommandService) handlePromotionData(ctx context.Context, orders []*
 					entity.StoreDiscount += int(voucherResp.VoucherDetail.DiscountData.MaximumValue)
 				}
 			}
-			voucherCode = append(voucherCode, shopVoucherMap[entity.StoreId])
+			voucherCode = append(voucherCode, promotionData.ShopVoucherInfo[shopVoucherIndex].VoucherCode)
 
 		}
 

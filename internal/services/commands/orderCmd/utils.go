@@ -51,68 +51,84 @@ func GetQuantityItems(productId string, optionId string, item map[string]int) in
 func MappingDataToMessage(daos []*order.Order, dto *reqDTO.CreateOrderRequest,
 	cartMap map[string][]string, checkout msgDTO.CheckoutMessage) *msgDTO.CreateOrderMessage {
 
-	orderMsg := msgDTO.CreateOrderMessage{}
+	orderMsg := &msgDTO.CreateOrderMessage{}
+
+	// Copy checkout message
 	if err := mapper.Copy(&orderMsg.CheckoutMessage, checkout); err != nil {
 		log.Error(err)
 		return nil
 	}
 
-	orderMsg.UserRequest.UserId = daos[0].UserId
-	orderMsg.UserRequest.Username = daos[0].Username
-	orderMsg.Address.AddressId = daos[0].Delivery.AddressId
-	orderMsg.Address.AddressDetail = daos[0].Delivery.ShippingAddress
-	orderMsg.Address.Name = daos[0].Delivery.ShippingName
-	orderMsg.Address.Phone = daos[0].Delivery.ShippingPhone
-
-	//mapping promotion data
-	orderMsg.PromotionMessage.FreeShippingVoucher = dto.PromotionData.FreeShippingVoucherInfo.VoucherCode
-	orderMsg.PromotionMessage.PaymentVoucher = dto.PromotionData.PaymentVoucherInfo.VoucherCode
-	orderMsg.PromotionMessage.PaymentVoucher = dto.PromotionData.PaymentVoucherInfo.VoucherCode
-	for _, i := range dto.PromotionData.ShopVoucherInfo {
-		orderMsg.PromotionMessage.ShopVoucher = append(orderMsg.PromotionMessage.ShopVoucher, i.VoucherCode)
+	// Extract user and address details from first DAO
+	firstDao := daos[0]
+	orderMsg.UserRequest = msgDTO.UserRequest{
+		UserId:   firstDao.UserId,
+		Username: firstDao.Username,
+	}
+	orderMsg.Address = msgDTO.OrderAddress{
+		AddressId:     firstDao.Delivery.AddressId,
+		AddressDetail: firstDao.Delivery.ShippingAddress,
+		Name:          firstDao.Delivery.ShippingName,
+		Phone:         firstDao.Delivery.ShippingPhone,
 	}
 
-	//order items
-	for _, i := range daos {
+	// Map promotion data
+	if dto.PromotionData != nil {
+		if dto.PromotionData.FreeShippingVoucherInfo != nil {
+			orderMsg.PromotionMessage.FreeShippingVoucher = dto.PromotionData.FreeShippingVoucherInfo.VoucherCode
+		}
+		if dto.PromotionData.PaymentVoucherInfo != nil {
+			orderMsg.PromotionMessage.PaymentVoucher = dto.PromotionData.PaymentVoucherInfo.VoucherCode
+		}
+		for _, voucherInfo := range dto.PromotionData.ShopVoucherInfo {
+			orderMsg.PromotionMessage.ShopVoucher = append(orderMsg.PromotionMessage.ShopVoucher, voucherInfo.VoucherCode)
+		}
+	}
+
+	// Map order items
+	for _, dao := range daos {
 		orderDetail := msgDTO.OrderDetail{}
-		if err := mapper.Copy(&orderDetail, i); err != nil {
+
+		// Copy data from DAO to order detail
+		if err := mapper.Copy(&orderDetail, dao); err != nil {
 			log.Error(err)
 			return nil
 		}
 
-		//assign delivery data
-		orderDetail.Delivery.DeliveryId = i.Delivery.DeliveryId
-		orderDetail.Delivery.Cost = i.Delivery.Cost
-		orderDetail.Delivery.ReceivingDate = i.Delivery.ReceivingDate
-		orderDetail.Delivery.Name = i.Delivery.DeliveryName
-
-		//assign order store data
-		orderDetail.StoreID = i.StoreId
-		//order detail
-		var orderItems []msgDTO.OrderItemsMessage
-		for _, j := range i.OrderItem {
-			item := msgDTO.OrderItemsMessage{
-				ProductItem: msgDTO.ProductItem{
-					ProductID:   j.ProductID,
-					ProductName: j.ProductName,
-					NameOption:  j.NameOption,
-					OptionID:    j.OptionID,
-					Quantity:    j.Quantity,
-					Price:       j.Price,
-					NetPrice:    j.NetPrice,
-					Image:       j.ProdImg,
-				},
-			}
-			orderItems = append(orderItems, item)
+		// Assign delivery data
+		orderDetail.Delivery = msgDTO.Delivery{
+			DeliveryId:    dao.Delivery.DeliveryId,
+			Cost:          dao.Delivery.Cost,
+			ReceivingDate: dao.Delivery.ReceivingDate,
+			Name:          dao.Delivery.DeliveryName,
 		}
 
+		// Map order store data
+		orderDetail.StoreID = dao.StoreId
+
+		// Map order items
+		orderItems := make([]msgDTO.OrderItemsMessage, len(dao.OrderItem))
+		for idx, item := range dao.OrderItem {
+			orderItems[idx] = msgDTO.OrderItemsMessage{
+				ProductItem: msgDTO.ProductItem{
+					ProductID:   item.ProductID,
+					ProductName: item.ProductName,
+					NameOption:  item.NameOption,
+					OptionID:    item.OptionID,
+					Quantity:    item.Quantity,
+					Price:       item.Price,
+					NetPrice:    item.NetPrice,
+					Image:       item.ProdImg,
+				},
+			}
+		}
 		orderDetail.OrderItems = orderItems
-		orderDetail.CartIds = cartMap[i.StoreId]
+		orderDetail.CartIds = cartMap[dao.StoreId]
 
 		orderMsg.OrderDetail = append(orderMsg.OrderDetail, orderDetail)
 	}
 
-	return &orderMsg
+	return orderMsg
 }
 
 func GenKeyOrder(userId string) string {
