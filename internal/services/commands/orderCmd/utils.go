@@ -72,19 +72,6 @@ func MappingDataToMessage(daos []*order.Order, dto *reqDTO.CreateOrderRequest,
 		Phone:         firstDao.Delivery.ShippingPhone,
 	}
 
-	// Map promotion data
-	if dto.PromotionData != nil {
-		if dto.PromotionData.FreeShippingVoucherInfo != nil {
-			orderMsg.PromotionMessage.FreeShippingVoucher = dto.PromotionData.FreeShippingVoucherInfo.VoucherCode
-		}
-		if dto.PromotionData.PaymentVoucherInfo != nil {
-			orderMsg.PromotionMessage.PaymentVoucher = dto.PromotionData.PaymentVoucherInfo.VoucherCode
-		}
-		for _, voucherInfo := range dto.PromotionData.ShopVoucherInfo {
-			orderMsg.PromotionMessage.ShopVoucher = append(orderMsg.PromotionMessage.ShopVoucher, voucherInfo.VoucherCode)
-		}
-	}
-
 	// Map order items
 	for _, dao := range daos {
 		orderDetail := msgDTO.OrderDetail{}
@@ -104,6 +91,7 @@ func MappingDataToMessage(daos []*order.Order, dto *reqDTO.CreateOrderRequest,
 		}
 
 		// Map order store data
+		orderDetail.Vouchers = dao.Vouchers
 		orderDetail.StoreID = dao.StoreId
 
 		// Map order items
