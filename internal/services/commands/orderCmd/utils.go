@@ -48,8 +48,8 @@ func GetQuantityItems(productId string, optionId string, item map[string]int) in
 		return item[productId]
 	}
 }
-func MappingDataToMessage(daos []*order.Order, dto *reqDTO.CreateOrderRequest,
-	cartMap map[string][]string, checkout msgDTO.CheckoutMessage) *msgDTO.CreateOrderMessage {
+func MappingDataToMessage(daos []*order.Order, cartMap map[string][]string,
+	checkout msgDTO.CheckoutMessage) *msgDTO.CreateOrderMessage {
 
 	orderMsg := &msgDTO.CreateOrderMessage{}
 

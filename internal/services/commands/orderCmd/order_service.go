@@ -152,7 +152,7 @@ func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.Crea
 		return nil, errors.OrderCannotCreated
 	}
 
-	if err := o.publisher.SendOrderCreatedMessage(MappingDataToMessage(orders, dto, cartMap, checkout)); err != nil {
+	if err := o.publisher.SendOrderCreatedMessage(MappingDataToMessage(orders, cartMap, checkout)); err != nil {
 		log.Error(err)
 	}
 
@@ -260,57 +260,61 @@ func (o orderCommandService) handlePromotionData(ctx context.Context, orders []*
 	for _, entity := range orders {
 		var voucherCode []string
 		//shipping vouchers
-		sVoucherReq := orderQuery.MappingShippingVoucherRequest(promotionData, entity, entity.StoreId)
-		if sVoucherReq != nil {
-			resp, err := o.voucherGrpc.CheckoutVoucherForPurchase(ctx, sVoucherReq)
-			if err != nil {
-				return err
-			}
+		if promotionData.FreeShippingVoucherInfo != nil {
+			sVoucherReq := orderQuery.MappingShippingVoucherRequest(promotionData, entity, entity.StoreId)
+			if sVoucherReq != nil {
+				resp, err := o.voucherGrpc.CheckoutVoucherForPurchase(ctx, sVoucherReq)
+				if err != nil {
+					return err
+				}
 
-			if resp != nil {
-				if resp.VoucherDetail != nil {
-					if uint64(entity.ShippingCost) < resp.VoucherDetail.DiscountData.ShippingValue {
-						entity.ShippingDiscount = entity.ShippingCost
-					} else {
-						entity.ShippingDiscount = int(resp.VoucherDetail.DiscountData.ShippingValue)
+				if resp != nil {
+					if resp.VoucherDetail != nil {
+						if uint64(entity.ShippingCost) < resp.VoucherDetail.DiscountData.ShippingValue {
+							entity.ShippingDiscount = entity.ShippingCost
+						} else {
+							entity.ShippingDiscount = int(resp.VoucherDetail.DiscountData.ShippingValue)
+						}
+						voucherCode = append(voucherCode, resp.VoucherDetail.VoucherCode)
 					}
-					voucherCode = append(voucherCode, resp.VoucherDetail.VoucherCode)
 				}
 			}
 		}
 
 		//store vouchers
-		shopVoucherIndex := slices.IndexFunc(promotionData.ShopVoucherInfo, func(i orderDTO.ShopVoucherInfo) bool {
-			return i.StoreId == entity.StoreId
-		})
-		if shopVoucherIndex != -1 {
+		if len(promotionData.ShopVoucherInfo) > 0 {
+			shopVoucherIndex := slices.IndexFunc(promotionData.ShopVoucherInfo, func(i orderDTO.ShopVoucherInfo) bool {
+				return i.StoreId == entity.StoreId
+			})
+			if shopVoucherIndex != -1 {
 
-			sVoucher := orderQuery.MappingShopVoucherRequest(entity,
-				promotionData.ShopVoucherInfo[shopVoucherIndex].VoucherCode)
+				sVoucher := orderQuery.MappingShopVoucherRequest(entity,
+					promotionData.ShopVoucherInfo[shopVoucherIndex].VoucherCode)
 
-			voucherResp, err := o.voucherGrpc.CheckoutVoucherForPurchase(ctx, sVoucher)
-			if err != nil {
-				return err
-			}
-
-			switch voucherResp.VoucherDetail.DiscountData.DiscountType {
-
-			case voucherConst.FIXED_DISCOUNT:
-				entity.StoreDiscount += int(voucherResp.VoucherDetail.DiscountData.DiscountValue)
-			case voucherConst.PERCENT_DISCOUNT:
-				value := uint64(float32(entity.SubTotal) * voucherResp.VoucherDetail.DiscountData.DiscountPercent)
-
-				if value <= voucherResp.VoucherDetail.DiscountData.MaximumValue {
-					entity.StoreDiscount += int(value)
-				} else {
-					entity.StoreDiscount += int(voucherResp.VoucherDetail.DiscountData.MaximumValue)
+				voucherResp, err := o.voucherGrpc.CheckoutVoucherForPurchase(ctx, sVoucher)
+				if err != nil {
+					return err
 				}
-			}
-			voucherCode = append(voucherCode, promotionData.ShopVoucherInfo[shopVoucherIndex].VoucherCode)
 
+				switch voucherResp.VoucherDetail.DiscountData.DiscountType {
+
+				case voucherConst.FIXED_DISCOUNT:
+					entity.StoreDiscount += int(voucherResp.VoucherDetail.DiscountData.DiscountValue)
+				case voucherConst.PERCENT_DISCOUNT:
+					value := uint64(float32(entity.SubTotal) * voucherResp.VoucherDetail.DiscountData.DiscountPercent)
+
+					if value <= voucherResp.VoucherDetail.DiscountData.MaximumValue {
+						entity.StoreDiscount += int(value)
+					} else {
+						entity.StoreDiscount += int(voucherResp.VoucherDetail.DiscountData.MaximumValue)
+					}
+				}
+				voucherCode = append(voucherCode, promotionData.ShopVoucherInfo[shopVoucherIndex].VoucherCode)
+
+			}
 		}
 
-		if pVoucherResp.VoucherDetail != nil {
+		if pVoucherResp != nil {
 			switch pVoucherResp.VoucherDetail.DiscountData.DiscountType {
 			case voucherConst.FIXED_DISCOUNT:
 				entity.PaymentDiscount = int(pVoucherResp.VoucherDetail.DiscountData.DiscountValue) / len(orders)
