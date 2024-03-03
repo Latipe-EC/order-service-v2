@@ -1,6 +1,8 @@
 module latipe-order-service-v2
 
-go 1.20
+go 1.21
+
+toolchain go1.22.0
 
 require (
 	github.com/Pacific73/gorm-cache v1.1.1

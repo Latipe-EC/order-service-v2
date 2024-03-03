@@ -63,7 +63,7 @@ type FreeShippingVoucherInfo struct {
 }
 
 type PaymentVoucherInfo struct {
-	VoucherCode string `json:"voucher_code" validate:"required"`
+	VoucherCode string `json:"voucher_code"`
 }
 
 type ShopVoucherInfo struct {
