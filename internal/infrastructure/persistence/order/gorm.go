@@ -240,6 +240,14 @@ func (g GormRepository) Save(ctx context.Context, dao *entity.Order) error {
 	return result
 }
 
+func (g GormRepository) SaveMultiple(ctx context.Context, dao []*entity.Order) error {
+	result := g.client.Exec(func(tx *gormF.DB) error {
+		return tx.Save(&dao).Error
+	}, ctx)
+
+	return result
+}
+
 func (g GormRepository) UpdateStatus(ctx context.Context, orderID string, status int, message ...string) error {
 
 	updateLog := entity.OrderStatusLog{

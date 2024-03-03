@@ -19,6 +19,8 @@ type OrderRepository interface {
 	FindOrderByUserAndProduct(ctx context.Context, userId string, productId string) ([]Order, error)
 	GetOrderAmountOfStore(ctx context.Context, orderId string) ([]custom_entity.AmountItemOfStoreInOrder, error)
 	Save(ctx context.Context, order *Order) error
+	SaveMultiple(ctx context.Context, dao []*Order) error
+
 	Update(ctx context.Context, order Order) error
 	UpdateStatus(ctx context.Context, orderID string, status int, message ...string) error
 	UpdateOrderRating(ctx context.Context, itemId string, ratingId string) error

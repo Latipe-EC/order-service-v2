@@ -27,14 +27,14 @@ type voucherServiceGRPCClientImpl struct {
 	cc  grpc.ClientConnInterface
 }
 
-func (v voucherServiceGRPCClientImpl) CheckUsingVouchersForCheckout(ctx context.Context, in *CheckoutVoucherRequest, opts ...grpc.CallOption) (*CheckoutVoucherResponse, error) {
+func (v voucherServiceGRPCClientImpl) CheckoutVoucherForPurchase(ctx context.Context, in *CheckoutVoucherRequest, opts ...grpc.CallOption) (*CheckoutVoucherResponse, error) {
 	md := metadata.New(
 		map[string]string{"x-api-key": v.cfg.GRPC.VoucherServiceGrpc.APIKey},
 	)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	out := new(CheckoutVoucherResponse)
-	err := v.cc.Invoke(ctx, "/VoucherService/CheckUsingVouchersForCheckout", in, out, opts...)
+	err := v.cc.Invoke(ctx, "/VoucherService/CheckoutVoucherForPurchase", in, out, opts...)
 	if err != nil {
 		log.Errorf("request to gRPC is failed cause %v", err)
 		return nil, err

@@ -7,7 +7,7 @@ import (
 type CreateOrderRequest struct {
 	Header        BaseHeader
 	UserRequest   UserRequest
-	PaymentMethod int            `json:"payment_method" validate:"required"`
+	PaymentMethod int            `json:"payment_method" validate:"required,min=0,max=3"`
 	Address       OrderAddress   `json:"address" validate:"required"`
 	StoreOrders   []StoreOrder   `json:"store_orders"`
 	PromotionData *PromotionData `json:"promotion_data"`
@@ -52,13 +52,14 @@ type Delivery struct {
 }
 
 type PromotionData struct {
-	FreeShippingVoucherInfo FreeShippingVoucherInfo `json:"free_shipping_voucher"`
-	PaymentVoucherInfo      PaymentVoucherInfo      `json:"payment_voucher"`
-	ShopVoucherInfo         []ShopVoucherInfo       `json:"shop_vouchers"`
+	FreeShippingVoucherInfo *FreeShippingVoucherInfo `json:"free_shipping_voucher"`
+	PaymentVoucherInfo      *PaymentVoucherInfo      `json:"payment_voucher"`
+	ShopVoucherInfo         []ShopVoucherInfo        `json:"shop_vouchers"`
 }
 
 type FreeShippingVoucherInfo struct {
-	VoucherCode string `json:"voucher_code"`
+	StoreIds    []string `json:"store_ids"`
+	VoucherCode string   `json:"voucher_code"`
 }
 
 type PaymentVoucherInfo struct {

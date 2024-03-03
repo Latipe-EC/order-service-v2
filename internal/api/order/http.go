@@ -3,6 +3,7 @@ package order
 import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/log"
 	"gorm.io/gorm"
 	_ "latipe-order-service-v2/docs"
 	"latipe-order-service-v2/internal/common/errors"
@@ -70,6 +71,7 @@ func (o orderApiHandler) CreateOrder(ctx *fiber.Ctx) error {
 	}
 
 	if err := valid.GetValidator().Validate(bodyReq); err != nil {
+		log.Error(err)
 		return errors.ErrBadRequest
 	}
 
@@ -586,6 +588,7 @@ func (o orderApiHandler) UpdateOrderStatusByDelivery(ctx *fiber.Ctx) error {
 	req.DeliveryID = deli
 
 	if err := valid.GetValidator().Validate(req); err != nil {
+		log.Error(err)
 		return errors.ErrBadRequest
 	}
 
@@ -670,6 +673,7 @@ func (o orderApiHandler) SearchOrderIdByKeyword(ctx *fiber.Ctx) error {
 	}
 
 	if err := valid.GetValidator().Validate(&req); err != nil {
+		log.Error(err)
 		return errors.ErrBadRequest
 	}
 

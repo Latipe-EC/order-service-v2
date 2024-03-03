@@ -24,7 +24,7 @@ import (
 	"latipe-order-service-v2/internal/infrastructure/adapter/productserv"
 	"latipe-order-service-v2/internal/infrastructure/adapter/storeserv"
 	"latipe-order-service-v2/internal/infrastructure/adapter/userserv"
-	"latipe-order-service-v2/internal/infrastructure/adapter/vouchersev"
+	voucherserv "latipe-order-service-v2/internal/infrastructure/adapter/vouchersev"
 	grpc_adapt "latipe-order-service-v2/internal/infrastructure/grpc"
 	"latipe-order-service-v2/internal/infrastructure/persistence"
 	"latipe-order-service-v2/internal/middleware"
