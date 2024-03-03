@@ -22,7 +22,7 @@ import (
 	usergrpc "latipe-order-service-v2/internal/infrastructure/grpc/userServ"
 	publishMsg "latipe-order-service-v2/internal/publisher"
 	"latipe-order-service-v2/internal/services/queries/orderQuery"
-	"latipe-order-service-v2/pkg/cache/redisCacheV9"
+	cacheV9 "latipe-order-service-v2/pkg/cache/redisCacheV9"
 	"latipe-order-service-v2/pkg/util/mapper"
 	"strings"
 	"time"
@@ -86,7 +86,7 @@ func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.Crea
 
 	for _, i := range dto.StoreOrders {
 		//mapping cart req data
-		if len(i.CartIds) < 0 {
+		if len(i.CartIds) > 0 {
 			cartMap[i.StoreID] = i.CartIds
 		}
 
