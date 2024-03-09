@@ -8,6 +8,7 @@ type BaseHeader struct {
 
 type OrderResponse struct {
 	OrderID          string            `json:"order_id"`
+	StoreID          string            `json:"store_id"`
 	Amount           int               `json:"amount"`
 	ShippingDiscount int               `json:"shipping_discount"`
 	ItemDiscount     int               `json:"item_discount"`
