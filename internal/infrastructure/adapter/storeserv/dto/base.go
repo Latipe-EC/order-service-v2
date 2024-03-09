@@ -6,7 +6,7 @@ type AuthorizationHeader struct {
 
 type BaseResponse struct {
 	Code    int         `json:"code"`
-	Message string      `json:"message_queue,omitempty"`
+	Message string      `json:"message,omitempty"`
 	Data    interface{} `json:"data,omitempty"`
 }
 

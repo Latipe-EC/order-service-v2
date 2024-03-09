@@ -48,7 +48,7 @@ type OrderItemsResp struct {
 }
 
 type OrderStatusResp struct {
-	Message      string    `json:"message_queue"`
+	Message      string    `json:"message"`
 	StatusChange int       `json:"status_change"`
 	CreatedAt    time.Time `json:"created_at"`
 }

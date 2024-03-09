@@ -194,6 +194,7 @@ func (o orderCommandService) initOrderData(dto *orderDTO.CreateOrderRequest,
 			ProdImg:     item.Image,
 			Order:       &orderDAO,
 		}
+
 		//calculate subtotal of item
 		if i.NetPrice != 0 {
 			i.SubTotal = i.NetPrice * i.Quantity

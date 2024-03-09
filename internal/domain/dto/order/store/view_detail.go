@@ -19,6 +19,7 @@ type StoreOrderResponse struct {
 	OrderID          string             `json:"order_id"`
 	StoreOrderAmount int                `json:"store_order_amount,omitempty"`
 	Status           int                `json:"status"`
+	StoreID          string             `json:"store_id"`
 	PaymentMethod    int                `json:"payment_method"`
 	CreatedAt        time.Time          `json:"created_at"`
 	UpdatedAt        time.Time          `json:"updated_at"`
