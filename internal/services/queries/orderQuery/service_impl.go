@@ -300,6 +300,7 @@ func (o orderQueryService) ViewDetailStoreOrder(ctx context.Context, dto *store.
 			Price:       o.Price,
 			Id:          o.Id,
 			SubTotal:    o.SubTotal,
+			NameOption:  o.NameOption,
 			ProdImg:     o.ProdImg,
 			ProductName: o.ProductName,
 			NetPrice:    o.NetPrice,

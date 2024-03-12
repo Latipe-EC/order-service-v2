@@ -41,6 +41,7 @@ type OrderItemsResp struct {
 	OptionId    string `json:"option_id"`
 	Quantity    int    `json:"quantity"`
 	NetPrice    int    `json:"net_price"`
+	NameOption  string `json:"name_option"`
 	RatingID    string `json:"rating_id,omitempty"`
 	ProductName string `json:"product_name"`
 	ProdImg     string `json:"image"`

@@ -52,6 +52,7 @@ type OrderStoreItem struct {
 	Quantity    int    `json:"quantity" `
 	Price       int    `json:"price"`
 	NetPrice    int    `gorm:"not null;type:bigint" json:"net_price"`
+	NameOption  string `json:"name_option"`
 	Status      int    `json:"is_prepared"`
 	SubTotal    int    `json:"sub_total"`
 	ProductName string `json:"product_name"`
