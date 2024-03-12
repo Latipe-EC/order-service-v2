@@ -354,32 +354,6 @@ func (o orderCommandService) StoreUpdateOrderStatus(ctx context.Context, dto *st
 
 	switch dto.Status {
 	case order.ORDER_PREPARED:
-
-		req := dto2.GetStoreByIdRequest{
-			StoreID: dto.StoreId,
-		}
-
-		storeCms, err := o.storeServ.GetStoreByStoreId(ctx, &req)
-		if err != nil {
-			return err
-		}
-
-		commission := order.OrderCommission{
-			OrderType:         "orders",
-			OrderID:           orderDAO.OrderID,
-			Order:             orderDAO,
-			StoreID:           orderDAO.StoreId,
-			DiscountFromStore: orderDAO.StoreDiscount,
-			Status:            order.COMMIS_PENDING,
-			SystemFee:         int(float64(orderDAO.SubTotal) * storeCms.FeePerOrder),
-			CreatedAt:         time.Time{},
-		}
-		commission.AmountReceived = orderDAO.SubTotal - commission.DiscountFromStore - commission.SystemFee
-
-		if err := o.commissionRepo.CreateOrderCommission(&commission); err != nil {
-			return err
-		}
-
 		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_PREPARED); err != nil {
 			return err
 		}
@@ -464,8 +438,37 @@ func (o orderCommandService) UpdateStatusOrder(ctx context.Context, dto *orderDT
 func (o orderCommandService) UpdateOrderStatusByReplyMessage(ctx context.Context, dto *msgDTO.OrderStatusMessage) error {
 	switch dto.Status {
 	case msgDTO.ORDER_EVENT_COMMIT_SUCCESS:
-		if err := o.orderRepo.UpdateStatus(ctx, dto.OrderID, order.ORDER_CREATED,
+		orderDAO, err := o.orderRepo.FindByIdForUpdate(ctx, dto.OrderID)
+		if err != nil {
+			return err
+		}
+
+		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_CREATED,
 			"Đơn hàng được tạo thành công"); err != nil {
+			return err
+		}
+		req := dto2.GetStoreByIdRequest{
+			StoreID: orderDAO.StoreId,
+		}
+
+		storeCms, err := o.storeServ.GetStoreByStoreId(ctx, &req)
+		if err != nil {
+			return err
+		}
+
+		commission := order.OrderCommission{
+			OrderType:         "orders",
+			OrderID:           orderDAO.OrderID,
+			Order:             orderDAO,
+			StoreID:           orderDAO.StoreId,
+			DiscountFromStore: orderDAO.StoreDiscount,
+			Status:            order.COMMIS_PENDING,
+			SystemFee:         int(float64(orderDAO.SubTotal) * storeCms.FeePerOrder),
+			CreatedAt:         time.Time{},
+		}
+		commission.AmountReceived = orderDAO.SubTotal - commission.DiscountFromStore - commission.SystemFee
+
+		if err := o.commissionRepo.CreateOrderCommission(&commission); err != nil {
 			return err
 		}
 	case msgDTO.ORDER_EVENT_FAIL_BY_PRODUCT:
