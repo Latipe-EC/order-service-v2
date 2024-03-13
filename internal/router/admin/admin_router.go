@@ -27,7 +27,7 @@ func (o adminOrderRouter) Init(root *fiber.Router) {
 	//admin
 	adminRouter := (*root).Group("/admin")
 	{
-		adminRouter.Get("/:id", o.middleware.Authentication.RequiredAuthentication(), o.orderHandler.GetByOrderId)
+		adminRouter.Get("/:id", o.middleware.Authentication.RequiredAuthentication(), o.orderHandler.GetOrderDetailByAdmin)
 		adminRouter.Get("", o.middleware.Authentication.RequiredAuthentication(), o.orderHandler.ListOfOrder)
 		adminRouter.Get("/total/count", o.middleware.Authentication.RequiredAuthentication(), o.orderHandler.AdminCountingOrder)
 		adminRouter.Patch("/status/cancel", o.middleware.Authentication.RequiredAuthentication(), o.orderHandler.AdminCancelOrder)

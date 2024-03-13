@@ -1,6 +1,8 @@
 package order
 
-import "time"
+import (
+	"time"
+)
 
 type BaseHeader struct {
 	BearerToken string `reqHeader:"Authorization"`
@@ -21,6 +23,17 @@ type OrderResponse struct {
 	Delivery         DeliveryResp      `json:"delivery"`
 	OrderItems       []OrderItemsResp  `json:"order_items,omitempty"`
 	OrderStatus      []OrderStatusResp `json:"order_status,omitempty"`
+}
+
+type AdminOrderResponse struct {
+	OrderResponse
+	CommissionDetail *CommissionDetail `json:"commission_detail,omitempty"`
+}
+
+type CommissionDetail struct {
+	AmountReceived    int `json:"amount_received"`
+	SystemFee         int `json:"system_fee"`
+	DiscountFromStore int ` json:"discount_from_store"`
 }
 
 type DeliveryResp struct {

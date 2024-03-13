@@ -308,7 +308,7 @@ func (o orderApiHandler) ListOfOrder(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param orderId path string true "Order ID"
 // @Router /role/order/{orderId} [get]
-func (o orderApiHandler) GetByOrderId(ctx *fiber.Ctx) error {
+func (o orderApiHandler) GetOrderDetailByAdmin(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 	req := new(dto.GetOrderByIDRequest)
 
@@ -316,7 +316,7 @@ func (o orderApiHandler) GetByOrderId(ctx *fiber.Ctx) error {
 		return errors.ErrInternalServer
 	}
 
-	result, err := o.orderQueryServ.GetOrderByID(context, req)
+	result, err := o.orderQueryServ.GetOrderByIdofAdmin(context, req)
 	if err != nil {
 		switch {
 		case errors.Is(err, gorm.ErrRecordNotFound):
@@ -337,7 +337,7 @@ func (o orderApiHandler) GetByOrderId(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param orderId path string true "Order ID"
 // @Router /user/order/{orderId} [get]
-func (o orderApiHandler) UserGetOrderByID(ctx *fiber.Ctx) error {
+func (o orderApiHandler) GetOrderDetailOfUser(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 	req := new(dto.GetOrderByIDRequest)
 
@@ -358,7 +358,7 @@ func (o orderApiHandler) UserGetOrderByID(ctx *fiber.Ctx) error {
 	req.OwnerId = userId
 	req.Role = role
 
-	result, err := o.orderQueryServ.GetOrderByID(context, req)
+	result, err := o.orderQueryServ.GetOrderByIdOfUser(context, req)
 	if err != nil {
 		switch {
 		case errors.Is(err, gorm.ErrRecordNotFound):
@@ -379,7 +379,7 @@ func (o orderApiHandler) UserGetOrderByID(ctx *fiber.Ctx) error {
 // @Produce json
 // @Param orderId path string true "Order ID"
 // @Router /delivery/order/{orderId} [get]
-func (o orderApiHandler) DeliveryGetOrderByID(ctx *fiber.Ctx) error {
+func (o orderApiHandler) GetOrderDetailByDelivery(ctx *fiber.Ctx) error {
 	context := ctx.Context()
 	req := new(dto.GetOrderByIDRequest)
 
@@ -400,7 +400,7 @@ func (o orderApiHandler) DeliveryGetOrderByID(ctx *fiber.Ctx) error {
 	req.OwnerId = deliID
 	req.Role = role
 
-	result, err := o.orderQueryServ.GetOrderById(context, req)
+	result, err := o.orderQueryServ.GetOrderDetailOfDelivery(context, req)
 	if err != nil {
 		switch {
 		case errors.Is(err, gorm.ErrRecordNotFound):
@@ -505,7 +505,7 @@ func (o orderApiHandler) GetStoreOrderDetail(ctx *fiber.Ctx) error {
 	storeID := fmt.Sprintf("%v", ctx.Locals(auth.STORE_ID))
 	req.StoreID = storeID
 
-	result, err := o.orderQueryServ.ViewDetailStoreOrder(context, &req)
+	result, err := o.orderQueryServ.GetDetailOrderOfStore(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):
@@ -680,7 +680,7 @@ func (o orderApiHandler) SearchOrderIdByKeyword(ctx *fiber.Ctx) error {
 	storeID := fmt.Sprintf("%v", ctx.Locals(auth.STORE_ID))
 	req.StoreID = storeID
 
-	result, err := o.orderQueryServ.SearchStoreOrderId(context, &req)
+	result, err := o.orderQueryServ.SearchStoreOrderID(context, &req)
 	if err != nil {
 		switch {
 		case strings.Contains(err.Error(), "Unknown column"):

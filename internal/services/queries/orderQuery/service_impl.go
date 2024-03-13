@@ -21,6 +21,26 @@ func NewOrderQueryService(orderRepo order.OrderRepository) OrderQueryUsecase {
 		orderRepo: orderRepo,
 	}
 }
+
+func (o orderQueryService) GetOrderByIdofAdmin(ctx context.Context, dto *orderDTO.GetOrderByIDRequest) (*orderDTO.AdminOrderResponse, error) {
+	orderResp := orderDTO.AdminOrderResponse{}
+
+	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderId)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = mapper.BindingStruct(orderDAO, &orderResp); err != nil {
+		return nil, err
+	}
+
+	if err = mapper.BindingStruct(orderDAO.OrderCommission, &orderResp.CommissionDetail); err != nil {
+		return nil, err
+	}
+
+	return &orderResp, err
+}
+
 func (o orderQueryService) AdminCountingOrderAmount(ctx context.Context, dto *orderDTO.CountingOrderAmountRequest) (*orderDTO.CountingOrderAmountResponse, error) {
 	count, err := o.orderRepo.AdminCountingOrder(ctx)
 	if err != nil {
@@ -75,7 +95,7 @@ func (o orderQueryService) InternalGetRatingID(ctx context.Context, dto *interna
 	return &resp, err
 }
 
-func (o orderQueryService) GetOrderById(ctx context.Context, dto *orderDTO.GetOrderByIDRequest) (*orderDTO.GetOrderResponse, error) {
+func (o orderQueryService) GetOrderByIdOfUser(ctx context.Context, dto *orderDTO.GetOrderByIDRequest) (*orderDTO.GetOrderResponse, error) {
 	orderResp := orderDTO.OrderResponse{}
 
 	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderId)
@@ -83,15 +103,8 @@ func (o orderQueryService) GetOrderById(ctx context.Context, dto *orderDTO.GetOr
 		return nil, err
 	}
 
-	switch dto.Role {
-	case auth.ROLE_USER:
-		if orderDAO.UserId != dto.OwnerId {
-			return nil, errors.ErrNotFound
-		}
-	case auth.ROLE_STORE:
-		if orderDAO.StoreId != dto.OwnerId {
-			return nil, errors.ErrNotFound
-		}
+	if orderDAO.UserId != dto.OwnerId {
+		return nil, errors.ErrNotFound
 	}
 
 	if err = mapper.BindingStruct(orderDAO, &orderResp); err != nil {
@@ -103,7 +116,7 @@ func (o orderQueryService) GetOrderById(ctx context.Context, dto *orderDTO.GetOr
 	return &resp, err
 }
 
-func (o orderQueryService) GetOrderByID(ctx context.Context, dto *orderDTO.GetOrderByIDRequest) (*orderDTO.GetOrderResponse, error) {
+func (o orderQueryService) GetOrderDetailOfDelivery(ctx context.Context, dto *orderDTO.GetOrderByIDRequest) (*orderDTO.GetOrderResponse, error) {
 	orderResp := orderDTO.OrderResponse{}
 
 	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderId)
@@ -189,7 +202,7 @@ func (o orderQueryService) GetOrderByUserId(ctx context.Context, dto *orderDTO.G
 	return &resp, err
 }
 
-func (o orderQueryService) SearchStoreOrderId(ctx context.Context, dto *store.FindStoreOrderRequest) (*orderDTO.GetOrderListResponse, error) {
+func (o orderQueryService) SearchStoreOrderID(ctx context.Context, dto *store.FindStoreOrderRequest) (*orderDTO.GetOrderListResponse, error) {
 	var dataResp []store.StoreOrderResponse
 
 	orders, err := o.orderRepo.SearchOrderByStoreID(ctx, dto.StoreID, dto.Keyword, dto.Query)
@@ -270,7 +283,7 @@ func (o orderQueryService) GetOrdersOfDelivery(ctx context.Context, dto *deliver
 	return &resp, err
 }
 
-func (o orderQueryService) ViewDetailStoreOrder(ctx context.Context, dto *store.GetOrderOfStoreByIDRequest) (*store.GetOrderOfStoreByIDResponse, error) {
+func (o orderQueryService) GetDetailOrderOfStore(ctx context.Context, dto *store.GetOrderOfStoreByIDRequest) (*store.GetOrderOfStoreByIDResponse, error) {
 	orderResp := store.GetOrderOfStoreByIDResponse{}
 
 	orderDAO, err := o.orderRepo.FindByID(ctx, dto.OrderID)

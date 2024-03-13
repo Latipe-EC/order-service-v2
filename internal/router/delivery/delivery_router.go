@@ -29,7 +29,7 @@ func (o deliveryOrderRouter) Init(root *fiber.Router) {
 	deliveryRouter := (*root).Group("/delivery")
 	{
 		deliveryRouter.Get("", o.middleware.Authentication.RequiredDeliveryAuthentication(), o.orderHandler.GetOrdersByDelivery)
-		deliveryRouter.Get("/:id", o.middleware.Authentication.RequiredDeliveryAuthentication(), o.orderHandler.DeliveryGetOrderByID)
+		deliveryRouter.Get("/:id", o.middleware.Authentication.RequiredDeliveryAuthentication(), o.orderHandler.GetOrderDetailByDelivery)
 		deliveryRouter.Get("/total/count", o.middleware.Authentication.RequiredDeliveryAuthentication(), o.orderHandler.DeliveryCountingOrder)
 		deliveryRouter.Patch("/:id", o.middleware.Authentication.RequiredDeliveryAuthentication(), o.orderHandler.UpdateOrderStatusByDelivery)
 	}

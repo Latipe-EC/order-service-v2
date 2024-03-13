@@ -379,12 +379,15 @@ func (o orderCommandService) DeliveryUpdateOrderStatus(ctx context.Context, dto 
 		return errors.ErrNotFoundRecord
 	}
 
-	if orderDAO.Status != order.ORDER_PREPARED {
+	if orderDAO.Status < order.ORDER_CREATED {
 		return errors.OrderStatusNotValid
 	}
 
 	switch dto.Status {
 	case order.ORDER_DELIVERY:
+		if orderDAO.Status != order.ORDER_PREPARED {
+			return errors.OrderStatusNotValid
+		}
 		orderDAO.Status = dto.Status
 		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, dto.Status,
 			"Đơn hàng được đơn vị vận chuyển tiếp nhận và giao hàng"); err != nil {
@@ -403,6 +406,9 @@ func (o orderCommandService) DeliveryUpdateOrderStatus(ctx context.Context, dto 
 			return err
 		}
 	case order.ORDER_SHIPPING_FINISH:
+		if orderDAO.Status != order.ORDER_DELIVERY {
+			return errors.OrderStatusNotValid
+		}
 		orderDAO.Status = dto.Status
 		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, dto.Status,
 			fmt.Sprintf("Đơn hàng giao thành công: %v", dto.Message)); err != nil {
@@ -471,6 +477,7 @@ func (o orderCommandService) UpdateOrderStatusByReplyMessage(ctx context.Context
 		if err := o.commissionRepo.CreateOrderCommission(&commission); err != nil {
 			return err
 		}
+
 	case msgDTO.ORDER_EVENT_FAIL_BY_PRODUCT:
 		if err := o.orderRepo.UpdateStatus(ctx, dto.OrderID, order.ORDER_FAILED,
 			"Đơn hàng xử lý thất bại do lỗi sản phẩm"); err != nil {

@@ -1,22 +1,20 @@
 package order
 
-import (
-	"github.com/gofiber/fiber/v2"
-)
+import "github.com/gofiber/fiber/v2"
 
 type OrderApiHandler interface {
 	CreateOrder(ctx *fiber.Ctx) error
 
 	ListOfOrder(ctx *fiber.Ctx) error
-	GetByOrderId(ctx *fiber.Ctx) error
+	GetOrderDetailByAdmin(ctx *fiber.Ctx) error
 	GetMyOrder(ctx *fiber.Ctx) error
-	UserGetOrderByID(ctx *fiber.Ctx) error
+	GetOrderDetailOfUser(ctx *fiber.Ctx) error
 
 	SearchOrderIdByKeyword(ctx *fiber.Ctx) error
 	GetMyStoreOrder(ctx *fiber.Ctx) error
 	GetStoreOrderDetail(ctx *fiber.Ctx) error
 	GetOrdersByDelivery(ctx *fiber.Ctx) error
-	DeliveryGetOrderByID(ctx *fiber.Ctx) error
+	GetOrderDetailByDelivery(ctx *fiber.Ctx) error
 
 	UpdateOrderStatus(ctx *fiber.Ctx) error
 	UpdateOrderStatusByStore(ctx *fiber.Ctx) error
