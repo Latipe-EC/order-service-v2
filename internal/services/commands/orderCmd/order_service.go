@@ -118,7 +118,7 @@ func (o orderCommandService) CreateOrder(ctx context.Context, dto *orderDTO.Crea
 		orderData, err := o.initOrderData(dto, address, shippingDetail, products, itemMap)
 		if err != nil {
 			data.FailedOrder.StoreID = i.StoreID
-			data.FailedOrder.Message = "calculating promotion data is failed"
+			data.FailedOrder.Message = err.Error()
 			log.Error(err)
 			continue
 		}
