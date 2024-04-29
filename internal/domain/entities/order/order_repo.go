@@ -10,6 +10,7 @@ type OrderRepository interface {
 	FindByItemId(ctx context.Context, itemId string) (*OrderItem, error)
 	FindByID(ctx context.Context, orderId string) (*Order, error)
 	FindByIdForUpdate(ctx context.Context, orderId string) (*Order, error)
+	FindByIdSingleObject(ctx context.Context, orderId string) (*Order, error)
 	FindOrderByStoreID(ctx context.Context, storeId string, query *pagable.Query, keyword string) ([]Order, error)
 	FindOrderByDelivery(ctx context.Context, deliID string, keyword string, query *pagable.Query) ([]Order, error)
 	FindAll(ctx context.Context, query *pagable.Query) ([]Order, error)

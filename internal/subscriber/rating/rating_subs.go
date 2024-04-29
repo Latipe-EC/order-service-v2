@@ -30,7 +30,6 @@ func NewRatingItemSubscriber(cfg *config.Config, conn *amqp.Connection, orderSer
 
 func (mq RatingItemSubscriber) ListenRatingRatingQueue(wg *sync.WaitGroup) {
 	channel, err := mq.conn.Channel()
-	defer channel.Close()
 
 	// define an exchange type "topic"
 	err = channel.ExchangeDeclare(

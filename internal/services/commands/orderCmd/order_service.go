@@ -34,6 +34,7 @@ type orderCommandService struct {
 	commissionRepo order.CommissionRepository
 	cacheEngine    *cacheV9.CacheEngine
 	publisher      *publishMsg.PublisherTransactionMessage
+	notifyPub      *publishMsg.NotificationMessagePublisher
 	//grpc client
 	voucherGrpc  vouchergrpc.VoucherServiceClient
 	productGrpc  productgrpc.ProductServiceClient
@@ -47,7 +48,7 @@ func NewOrderCommandService(cfg *config.Config, orderRepo order.OrderRepository,
 	commissionRepo order.CommissionRepository,
 	cacheEngine *cacheV9.CacheEngine, publisher *publishMsg.PublisherTransactionMessage,
 	voucherGrpc vouchergrpc.VoucherServiceClient, productGrpc productgrpc.ProductServiceClient,
-	deliveryGrpc deliverygrpc.DeliveryServiceClient, userGrpc usergrpc.UserServiceClient,
+	deliveryGrpc deliverygrpc.DeliveryServiceClient, userGrpc usergrpc.UserServiceClient, notifyPub *publishMsg.NotificationMessagePublisher,
 	storeServ storeserv.Service) OrderCommandUsecase {
 	return orderCommandService{
 		orderRepo:      orderRepo,
@@ -60,6 +61,7 @@ func NewOrderCommandService(cfg *config.Config, orderRepo order.OrderRepository,
 		productGrpc:    productGrpc,
 		userGrpc:       userGrpc,
 		storeServ:      storeServ,
+		notifyPub:      notifyPub,
 	}
 }
 
@@ -231,6 +233,7 @@ func (o orderCommandService) initOrderData(dto *orderDTO.CreateOrderRequest,
 
 	orderDAO.PaymentMethod = dto.PaymentMethod
 	orderDAO.Status = order.ORDER_SYSTEM_PROCESS
+	orderDAO.Thumbnail = orderItems[0].ProdImg
 	//create log
 	var logs []*order.OrderStatusLog
 	orderLog := order.OrderStatusLog{
@@ -352,28 +355,44 @@ func (o orderCommandService) StoreUpdateOrderStatus(ctx context.Context, dto *st
 		return errors.OrderStatusNotValid
 	}
 
+	var bodyContent string
+
 	switch dto.Status {
 	case order.ORDER_PREPARED:
 		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_PREPARED); err != nil {
 			return err
 		}
+
+		bodyContent = fmt.Sprintf("Xin chào, đơn hàng của bạn đã được cửa hàng xác nhận #[%v]", orderDAO.OrderID)
 	case order.ORDER_CANCEL_BY_STORE:
 		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_CANCEL_BY_STORE,
 			fmt.Sprintf("Đơn hàng bị hủy do yêu cầu của cửa hàng:%v", dto.Message)); err != nil {
 			return err
 		}
+		bodyContent = fmt.Sprintf("Xin lỗi đơn hàng #[%v] của bạn vừa bị hủy lý do là: %v ", orderDAO.OrderID,
+			fmt.Sprintf("Đơn hàng bị hủy do yêu cầu của cửa hàng:%v", dto.Message))
 	default:
 		return errors.OrderCannotUpdate
+	}
+
+	userNoti := msgDTO.NewNotificationMessage(msgDTO.NOTIFY_USER, orderDAO.UserId, "[Latipe] Thông báo tình trạng đơn hàng", bodyContent, orderDAO.Thumbnail)
+
+	//send message to user
+	if err := o.notifyPub.NotifyToUser(userNoti); err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func (o orderCommandService) DeliveryUpdateOrderStatus(ctx context.Context, dto delivery.UpdateOrderStatusRequest) error {
+
 	orderDAO, err := o.orderRepo.FindByIdForUpdate(ctx, dto.OrderID)
 	if err != nil {
 		return err
 	}
+
+	var bodyContent string
 
 	if orderDAO.Delivery.DeliveryId != dto.DeliveryID {
 		return errors.ErrNotFoundRecord
@@ -389,22 +408,28 @@ func (o orderCommandService) DeliveryUpdateOrderStatus(ctx context.Context, dto 
 			return errors.OrderStatusNotValid
 		}
 		orderDAO.Status = dto.Status
+
 		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, dto.Status,
 			"Đơn hàng được đơn vị vận chuyển tiếp nhận và giao hàng"); err != nil {
 			return err
 		}
+		bodyContent = fmt.Sprintf("Xin chào, đơn hàng [%v] của bạn đã được vận chuyển bởi %v ", orderDAO.OrderID, orderDAO.Delivery.DeliveryName)
+
 	case order.ORDER_CANCEL_BY_USER:
 		orderDAO.Status = dto.Status
 		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, dto.Status,
 			fmt.Sprintf("Đơn hàng không thể giao thành công lý do: %v", dto.Message)); err != nil {
 			return err
 		}
+		bodyContent = fmt.Sprintf("Xin chào, đơn hàng [%v] của bạn đã bị huỷ do %v ", orderDAO.OrderID, dto.Message)
 	case order.ORDER_CANCEL_BY_DELI:
 		orderDAO.Status = dto.Status
 		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, dto.Status,
 			fmt.Sprintf("Đơn hàng giao thất bại lý do: %v", dto.Message)); err != nil {
 			return err
 		}
+		bodyContent = fmt.Sprintf("Xin chào, đơn hàng [%v] của bạn đã bị huỷ do %v ", orderDAO.OrderID, dto.Message)
+
 	case order.ORDER_SHIPPING_FINISH:
 		if orderDAO.Status != order.ORDER_DELIVERY {
 			return errors.OrderStatusNotValid
@@ -414,8 +439,22 @@ func (o orderCommandService) DeliveryUpdateOrderStatus(ctx context.Context, dto 
 			fmt.Sprintf("Đơn hàng giao thành công: %v", dto.Message)); err != nil {
 			return err
 		}
+		bodyContent = fmt.Sprintf("Xin chào, đơn hàng [%v] của bạn đã giao thành công.", orderDAO.OrderID)
+
 	default:
 		return errors.OrderCannotUpdate
+	}
+
+	userNoti := msgDTO.NewNotificationMessage(msgDTO.NOTIFY_USER, orderDAO.UserId, "[Latipe] Thông báo tình trạng đơn hàng", bodyContent, orderDAO.Thumbnail)
+	//send message to user
+	if err := o.notifyPub.NotifyToUser(userNoti); err != nil {
+		return err
+	}
+
+	storeNoti := msgDTO.NewNotificationMessage(msgDTO.NOTIFY_STORE, orderDAO.StoreId, "[Latipe] Thông báo tình trạng đơn hàng", bodyContent, orderDAO.Thumbnail)
+	//send message to user
+	if err := o.notifyPub.NotifyToUser(storeNoti); err != nil {
+		return err
 	}
 
 	return nil
@@ -442,6 +481,8 @@ func (o orderCommandService) UpdateStatusOrder(ctx context.Context, dto *orderDT
 }
 
 func (o orderCommandService) UpdateOrderStatusByReplyMessage(ctx context.Context, dto *msgDTO.OrderStatusMessage) error {
+	var bodyContent string
+
 	switch dto.Status {
 	case msgDTO.ORDER_EVENT_COMMIT_SUCCESS:
 		orderDAO, err := o.orderRepo.FindByIdForUpdate(ctx, dto.OrderID)
@@ -449,8 +490,9 @@ func (o orderCommandService) UpdateOrderStatusByReplyMessage(ctx context.Context
 			return err
 		}
 
+		bodyContent = "Đơn hàng được tạo thành công"
 		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_CREATED,
-			"Đơn hàng được tạo thành công"); err != nil {
+			bodyContent); err != nil {
 			return err
 		}
 		req := dto2.GetStoreByIdRequest{
@@ -479,33 +521,62 @@ func (o orderCommandService) UpdateOrderStatusByReplyMessage(ctx context.Context
 		}
 
 	case msgDTO.ORDER_EVENT_FAIL_BY_PRODUCT:
+		bodyContent = "Đơn hàng xử lý thất bại do lỗi sản phẩm"
 		if err := o.orderRepo.UpdateStatus(ctx, dto.OrderID, order.ORDER_FAILED,
-			"Đơn hàng xử lý thất bại do lỗi sản phẩm"); err != nil {
+			bodyContent); err != nil {
 			return err
 		}
 	case msgDTO.ORDER_EVENT_FAIL_BY_PROMOTION:
+		bodyContent = "Đơn hàng xử lý thất bại do lỗi khuyến mãi"
 		if err := o.orderRepo.UpdateStatus(ctx, dto.OrderID, order.ORDER_FAILED,
-			"Đơn hàng xử lý thất bại do lỗi khuyến mãi"); err != nil {
+			bodyContent); err != nil {
 			return err
 		}
 	case msgDTO.ORDER_EVENT_FAIL_BY_DELIVERY:
+		bodyContent = "Đơn hàng xử lý thất bại do lỗi vận chuyển"
 		if err := o.orderRepo.UpdateStatus(ctx, dto.OrderID, order.ORDER_FAILED,
-			"Đơn hàng xử lý thất bại do lỗi vận chuyển"); err != nil {
+			bodyContent); err != nil {
 			return err
 		}
 	case msgDTO.ORDER_EVENT_FAIL_BY_PAYMENT:
+		bodyContent = "Đơn hàng xử lý thất bại do lỗi thanh toán"
 		if err := o.orderRepo.UpdateStatus(ctx, dto.OrderID, order.ORDER_FAILED,
-			"Đơn hàng xử lý thất bại do lỗi thanh toán"); err != nil {
+			bodyContent); err != nil {
 			return err
 		}
 	case msgDTO.ORDER_EVENT_CANCEL:
+		bodyContent = "Đơn hàng bị hủy"
 		if err := o.orderRepo.UpdateStatus(ctx, dto.OrderID, order.ORDER_FAILED,
-			"Đơn hàng bị hủy"); err != nil {
+			bodyContent); err != nil {
 			return err
 		}
 	case msgDTO.ORDER_EVENT_REFUND:
+		bodyContent = "Đơn hàng hoàn trả"
 		if err := o.orderRepo.UpdateStatus(ctx, dto.OrderID, order.ORDER_FAILED,
-			"Đơn hàng hoàn trả"); err != nil {
+			bodyContent); err != nil {
+			return err
+		}
+	}
+
+	orderDAO, err := o.orderRepo.FindByIdSingleObject(ctx, dto.OrderID)
+	if err != nil {
+		return err
+	}
+
+	userNoti := msgDTO.NewNotificationMessage(msgDTO.NOTIFY_USER, orderDAO.UserId,
+		"[Latipe] Thông báo tình trạng đơn hàng", bodyContent, orderDAO.Thumbnail)
+	//send message to user
+	if err := o.notifyPub.NotifyToUser(userNoti); err != nil {
+		return err
+	}
+
+	if dto.Status == msgDTO.ORDER_EVENT_COMMIT_SUCCESS {
+		bodyContent = fmt.Sprintf("Cửa hàng của bạn vừa có 1 đơn hàng chờ xác nhận từ hệ thống [%v]", orderDAO.OrderID)
+		storeNoti := msgDTO.NewNotificationMessage(msgDTO.NOTIFY_STORE, orderDAO.StoreId,
+			"[Latipe] Thông báo tình trạng đơn hàng", bodyContent, orderDAO.Thumbnail)
+
+		//send message to user
+		if err := o.notifyPub.NotifyToUser(storeNoti); err != nil {
 			return err
 		}
 	}

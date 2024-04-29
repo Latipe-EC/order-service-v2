@@ -72,6 +72,7 @@ type Order struct {
 	Status           int               `gorm:"not null;type:int" json:"status"`
 	PaymentMethod    int               `json:"payment_method" gorm:"not null;type:int"`
 	StoreId          string            `gorm:"not null;type:varchar(255)" json:"store_id"`
+	Thumbnail        string            `gorm:"type:varchar(255)" json:"thumbnail"`
 	UpdatedAt        time.Time         `gorm:"autoUpdateTime;type:datetime(6)" json:"updated_at"`
 	CreatedAt        time.Time         `gorm:"autoCreateTime;type:datetime(6)" json:"created_at"`
 	OrderItem        []*OrderItem      `gorm:"constraint:OnUpdate:CASCADE;polymorphic:Order;" json:"order_items"`
