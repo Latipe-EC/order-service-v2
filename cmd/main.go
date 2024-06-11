@@ -20,22 +20,38 @@ func main() {
 		log.Fatalf("%s", err)
 	}
 
-	//subscriber
+	// Wrap each goroutine with a recovery handler
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go serv.OrderTransactionSubscriber().ListenOrderEventQueue(&wg)
 
 	wg.Add(1)
-	go serv.RatingItemSubscriber().ListenRatingRatingQueue(&wg)
+	go runWithRecovery(func() {
+		defer wg.Done()
+		serv.OrderTransactionSubscriber().ListenOrderEventQueue(&wg)
+	})
 
-	//api handler
 	wg.Add(1)
-	go func() {
+	go runWithRecovery(func() {
+		defer wg.Done()
+		serv.RatingItemSubscriber().ListenRatingRatingQueue(&wg)
+	})
+
+	// API handler
+	wg.Add(1)
+	go runWithRecovery(func() {
 		defer wg.Done()
 		if err := serv.App().Listen(serv.Config().Server.Port); err != nil {
 			fmt.Printf("%s", err)
 		}
-	}()
+	})
 
 	wg.Wait()
+}
+
+func runWithRecovery(fn func()) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic: %v", r)
+		}
+	}()
+	fn()
 }

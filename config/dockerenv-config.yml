@@ -1,0 +1,100 @@
+Server:
+  KeyID: ordvn
+  Name: "Order Service APIs"
+  AppVersion: 2.0.0
+  ApiHeaderKey: ccfe5596a56098c7a38b06dc42d0ec409bbab643bce1ea4007b4201d26fd056d
+  BaseURI: 127.0.0.1:5000
+  Port: :5000
+  Mode: local
+  ReadTimeout: 5s
+  WriteTimeout: 5s
+  SSL: true
+  CtxDefaultTimeout: 5
+  ExpirationLimitTime: 30s
+DB:
+  Mysql:
+    Host: mysql
+    Port: 3306
+    UserName: root
+    Password: 123123@Dat
+    Database: backend_orders_service
+    MaxOpenConns: 30
+    MaxIdleConns: 10
+    ConnMaxLifetime: 1799s
+    ConnMaxIdleTime: 5s
+  Mongodb:
+    Address:
+    Username:
+    Password:
+    DbName:
+    ConnectTimeout:
+    MaxConnIdleTime:
+    MinPoolSize:
+    MaxPoolSize:
+
+Cache:
+  Redis:
+    Address: host.docker.internal
+    Port: 6379
+    Password:
+    DbAuth: 10
+    DbQuery: 11
+
+RabbitMQ:
+  Connection: amqp://guest:guest@host.docker.internal:5672/
+  NameService: order_service_v2
+
+  SagaOrderEvent:
+    Exchange: order_transaction_ex
+    RoutingKey: order_created_event
+    CancelRoutingKey: order.transaction.cancel
+    PublishRoutingKey: order.transaction.commit
+    ReplyRoutingKey: order.transaction.reply
+
+  RatingReplyEvent:
+    Exchange: rating_exchange
+    RoutingKey: rating_routing_key
+    Queue: internal.rating
+
+AdapterService:
+  AuthService:
+    BaseURL: http://localhost:8081
+    InternalKey:
+  UserService:
+    UserURL: http://localhost:8181
+    InternalKey:
+  ProductService:
+    BaseURL: http://localhost:8645
+    InternalKey: fsf1AQOu6TVn+gNyjv22v9Cu/lW3HDF8QsSweKl5R6Me+rDO2Twyqkdbr8lZpRXkPL0MAcMA8AtgTrJAmSV5yA==
+  StoreService:
+    BaseURL: http://localhost:8118
+    InternalKey:
+  EmailService:
+    BaseURL: http://localhost:8181
+    InternalKey:
+  DeliveryService:
+    BaseURL: http://localhost:5005
+    InternalKey:
+  PromotionService:
+    BaseURL: http://localhost:5010
+    InternalKey:
+
+GRPC:
+  DeliveryServiceGrpc:
+    Connection: localhost:6005
+    ApiKey: aeceaec7eca63c4187e2ef406f4263d22b89f408
+  VoucherServiceGrpc:
+    Connection: localhost:6010
+    ApiKey: 410c25c9a9cf2c18866604919c4298c007114cb8
+  ProductServiceGrpc:
+    Connection: localhost:9645
+    ApiKey: fsf1AQOu6TVn+gNyjv22v9Cu/lW3HDF8QsSweKl5R6Me+rDO2Twyqkdbr8lZpRXkPL0MAcMA8AtgTrJAmSV5yA==
+  UserServiceGrpc:
+    Connection: localhost:9362
+    ApiKey: L95WcifFRUEREbSbrKHgyTFVd64YubZYSRo/zjW2PcXPhLeuv8SS4OYlOF8VfGdlXuzzDFBnfMfCGnjFgYN8Iw==
+
+Metrics:
+  Username: admin
+  Password: 123123
+  PrometheusURL: /metrics
+  FiberURL: /fiber/dashboard
