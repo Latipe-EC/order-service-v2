@@ -37,12 +37,12 @@ func main() {
 
 	// API handler
 	wg.Add(1)
-	go runWithRecovery(func() {
+	go func() {
 		defer wg.Done()
 		if err := serv.App().Listen(serv.Config().Server.Port); err != nil {
 			fmt.Printf("%s", err)
 		}
-	})
+	}()
 
 	wg.Wait()
 }

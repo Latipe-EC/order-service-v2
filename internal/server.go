@@ -5,15 +5,19 @@
 package server
 
 import (
+	"github.com/ansrivas/fiberprometheus/v2"
 	"github.com/bytedance/sonic"
+	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/healthcheck"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
+	recoverFiber "github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/swagger"
 	"github.com/google/wire"
+	"github.com/hellofresh/health-go/v5"
 	"latipe-order-service-v2/config"
 	"latipe-order-service-v2/internal/api"
 	"latipe-order-service-v2/internal/common/errors"
@@ -91,6 +95,9 @@ func NewServer(
 		JSONEncoder:  sonic.Marshal,
 		ErrorHandler: errors.CustomErrorHandler,
 	})
+
+	recoverConfig := recoverFiber.ConfigDefault
+	app.Use(recoverFiber.New(recoverConfig))
 
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "http://127.0.0.1:5500, http://127.0.0.1:5173",
