@@ -1,7 +1,7 @@
-// this code to enable wire inject
 //go:build wireinject
 // +build wireinject
 
+// this code to enable wire inject
 package server
 
 import (
@@ -100,8 +100,8 @@ func NewServer(
 	app.Use(recoverFiber.New(recoverConfig))
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "http://127.0.0.1:5500, http://127.0.0.1:5173",
-		AllowHeaders: "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+		AllowOrigins: "http://127.0.0.1:5500, http://127.0.0.1:5173, http://localhost:5500, http://localhost:5173",
+		AllowHeaders: "*",
 		AllowMethods: "GET,HEAD,OPTIONS,POST,PUT",
 	}))
 

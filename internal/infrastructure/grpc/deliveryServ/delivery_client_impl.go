@@ -39,5 +39,6 @@ func (d deliveryServiceGRPCClientImpl) CalculateShippingCost(ctx context.Context
 		log.Errorf("request to gRPC is failed cause %v", err)
 		return nil, err
 	}
+
 	return out, nil
 }
