@@ -367,3 +367,148 @@ func (s statisticApiHandler) ListOfProductSoldOnMonthStore(ctx *fiber.Ctx) error
 	resp.Data = result
 	return resp.JSON(ctx)
 }
+
+// @Summary Get store revenue distribution in month
+// @Tags Statistic
+// @Description Get store revenue distribution in month
+// @Accept json
+// @Produce json
+// @Param date query string false "date"
+// @Router /store/statistic/revenue-distribution-in-month [get]
+func (s statisticApiHandler) GetStoreRevenueDistributionInMonth(ctx *fiber.Ctx) error {
+	context := ctx.Context()
+
+	req := statistic.GetStoreRevenueDistributionRequest{}
+
+	if err := ctx.QueryParser(&req); err != nil {
+		return errors.ErrInvalidParameters
+	}
+
+	//validate request body date format match yyyy-mm
+	if !isValidDateFormat(req.Date) {
+		return errors.ErrInvalidParameters
+	}
+
+	if err := valid.GetValidator().Validate(&req); err != nil {
+		return errors.ErrBadRequest
+	}
+
+	storeID := fmt.Sprintf("%v", ctx.Locals(auth.STORE_ID))
+	req.StoreId = storeID
+
+	result, err := s.orderStatisticUsecase.GetStoreRevenueDistributionInMonth(context, &req)
+	if err != nil {
+		return errors.ErrBadRequest.WithInternalError(err)
+	}
+
+	resp := responses.DefaultSuccess
+	resp.Data = result
+	return resp.JSON(ctx)
+}
+
+// @Summary Get revenue distribution in month
+// @Tags Statistic
+// @Description Get revenue distribution in month
+// @Accept json
+// @Produce json
+// @Param date query string false "date"
+// @Router /admin/statistic/revenue-distribution-in-month [get]
+func (s statisticApiHandler) AdminGetRevenueDistributionInMonth(ctx *fiber.Ctx) error {
+	context := ctx.Context()
+
+	req := statistic.GetRevenueDistributionRequest{}
+
+	if err := ctx.QueryParser(&req); err != nil {
+		return errors.ErrInvalidParameters
+	}
+
+	//validate request body date format match yyyy-mm
+	if !isValidDateFormat(req.Date) {
+		return errors.ErrInvalidParameters
+	}
+
+	if err := valid.GetValidator().Validate(&req); err != nil {
+		return errors.ErrBadRequest
+	}
+
+	result, err := s.orderStatisticUsecase.AdminGetRevenueDistributionInMonth(context, &req)
+	if err != nil {
+		return errors.ErrBadRequest.WithInternalError(err)
+	}
+
+	resp := responses.DefaultSuccess
+	resp.Data = result
+	return resp.JSON(ctx)
+}
+
+// @Summary Export order data
+// @Tags Statistic
+// @Description Export order data
+// @Accept json
+// @Produce json
+// @Param date query string false "date"
+// @Router /admin/statistic/export-order-data [get]
+func (s statisticApiHandler) AdminExportOrderData(ctx *fiber.Ctx) error {
+	context := ctx.Context()
+
+	req := statistic.ExportOrderDataForAdminRequest{}
+
+	if err := ctx.QueryParser(&req); err != nil {
+		return errors.ErrInvalidParameters
+	}
+	if err := valid.GetValidator().Validate(&req); err != nil {
+		return errors.ErrBadRequest
+	}
+
+	//validate request body date format match yyyy-mm
+	if !isValidDateFormat(req.Date) {
+		return errors.ErrInvalidParameters
+	}
+
+	userName := fmt.Sprintf("%v", ctx.Locals(auth.USERNAME))
+	req.UserID = userName
+
+	result, err := s.orderStatisticUsecase.AdminExportOrderData(context, &req)
+	if err != nil {
+		return errors.ErrBadRequest.WithInternalError(err)
+	}
+
+	ctx.Attachment(result.FileName)
+	return ctx.SendStream(result.FileAttachment)
+}
+
+// @Summary Export order data for store
+// @Tags Statistic
+// @Description Export order data for store
+// @Accept json
+// @Produce json
+// @Param date query string false "date"
+// @Router /store/statistic/export-order-data [get]
+func (s statisticApiHandler) StoreExportOrderData(ctx *fiber.Ctx) error {
+	context := ctx.Context()
+
+	req := statistic.ExportOrderDataForStoreRequest{}
+
+	if err := ctx.QueryParser(&req); err != nil {
+		return errors.ErrInvalidParameters
+	}
+	if err := valid.GetValidator().Validate(&req); err != nil {
+		return errors.ErrBadRequest
+	}
+
+	//validate request body date format match yyyy-mm
+	if !isValidDateFormat(req.Date) {
+		return errors.ErrInvalidParameters
+	}
+
+	storeID := fmt.Sprintf("%v", ctx.Locals(auth.STORE_ID))
+	req.StoreID = storeID
+
+	result, err := s.orderStatisticUsecase.StoreExportOrderData(context, &req)
+	if err != nil {
+		return errors.ErrBadRequest.WithInternalError(err)
+	}
+
+	ctx.Attachment(result.FileName)
+	return ctx.SendStream(result.FileAttachment)
+}

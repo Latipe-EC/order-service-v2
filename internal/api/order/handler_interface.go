@@ -38,9 +38,14 @@ type OrderStatisticApiHandler interface {
 	AdminGetTotalOrderInSystemInYear(ctx *fiber.Ctx) error
 	AdminGetTotalCommissionOrderInYear(ctx *fiber.Ctx) error
 	AdminListOfProductSoldOnMonth(ctx *fiber.Ctx) error
+	AdminGetRevenueDistributionInMonth(ctx *fiber.Ctx) error
 	//store
 	GetTotalOrderInMonthOfStore(ctx *fiber.Ctx) error
 	GetTotalOrderInYearOfStore(ctx *fiber.Ctx) error
 	GetTotalStoreCommissionInYear(ctx *fiber.Ctx) error
 	ListOfProductSoldOnMonthStore(ctx *fiber.Ctx) error
+	GetStoreRevenueDistributionInMonth(ctx *fiber.Ctx) error
+
+	AdminExportOrderData(ctx *fiber.Ctx) error
+	StoreExportOrderData(ctx *fiber.Ctx) error
 }

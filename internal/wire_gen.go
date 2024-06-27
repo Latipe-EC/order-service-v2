@@ -25,6 +25,7 @@ import (
 	"latipe-order-service-v2/internal/infrastructure/adapter/authserv"
 	"latipe-order-service-v2/internal/infrastructure/adapter/deliveryserv"
 	"latipe-order-service-v2/internal/infrastructure/adapter/storeserv"
+	"latipe-order-service-v2/internal/infrastructure/excel"
 	"latipe-order-service-v2/internal/infrastructure/grpc/deliveryServ"
 	"latipe-order-service-v2/internal/infrastructure/grpc/productServ"
 	"latipe-order-service-v2/internal/infrastructure/grpc/promotionServ"
@@ -88,7 +89,8 @@ func New() (*Server, error) {
 	userOrderRouter := userRouter.NewUserOrderRouter(orderApiHandler, middlewareMiddleware)
 	storeOrderRouter := storeRouter.NewStoreOrderRouter(orderApiHandler, middlewareMiddleware)
 	deliveryOrderRouter := deliveryRouter.NewDeliveryOrderRouter(orderApiHandler, middlewareMiddleware)
-	orderStatisticUsecase := statisticQuery.NewOrderStatisicService(orderRepository)
+	exporterExcelData := excel.NewExcelExportClient()
+	orderStatisticUsecase := statisticQuery.NewOrderStatisicService(orderRepository, service, exporterExcelData)
 	orderStatisticApiHandler := order2.NewStatisticHandler(orderStatisticUsecase)
 	orderStatisticRouter := statisticRouter.NewStatisticOrderRouter(orderStatisticApiHandler, middlewareMiddleware)
 	internalOrderRouter := internalRouter.NewInternalOrderRouter(orderApiHandler, orderStatisticApiHandler, middlewareMiddleware)

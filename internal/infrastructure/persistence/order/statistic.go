@@ -253,3 +253,116 @@ func (g GormRepository) GetOrderAmountOfStore(ctx context.Context, orderId strin
 
 	return result, err
 }
+
+func (g GormRepository) GetStoreRevenueDistributionInMonth(ctx context.Context, storeId string, date string) (*custom_entity.StoreRevenuePer, error) {
+	var result custom_entity.StoreRevenuePer
+
+	err := g.client.Exec(func(tx *gormF.DB) error {
+		return tx.Table("orders").
+			Select("SUM(orders_commission.amount_received) as revenue, "+
+				"SUM(orders.store_discount) as store_voucher, "+
+				"SUM(orders_commission.system_fee) as platform_fee, "+
+				"SUM(orders_commission.amount_received - orders.store_discount - orders_commission.system_fee) "+
+				"as profit").
+			Joins("JOIN orders_commission ON orders.order_id = orders_commission.order_id").
+			Where("orders.store_id = ? AND DATE_FORMAT(orders.created_at, '%Y-%m') = ?", storeId, date).
+			Where("orders.status > ?", entity.ORDER_SYSTEM_PROCESS).
+			Scan(&result).Error
+	}, ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, err
+}
+
+func (g GormRepository) AdminRevenueDistributionInMonth(ctx context.Context, date string) (*custom_entity.AdminRevenuePer, error) {
+	var result custom_entity.AdminRevenuePer
+
+	err := g.client.Exec(func(tx *gormF.DB) error {
+		return tx.Table("orders").
+			Select("SUM(orders_commission.system_fee) as platform_fee, "+
+				"SUM(orders.payment_discount + orders.shipping_discount) as platform_voucher, "+
+				"SUM(orders.shipping_cost) as total_shipping, "+
+				"SUM(orders_commission.system_fee - orders.payment_discount - orders.shipping_discount) "+
+				"as profit").
+			Joins("JOIN orders_commission ON orders.order_id = orders_commission.order_id").
+			Where("DATE_FORMAT(orders.created_at, '%Y-%m') = ?", date).
+			Where("orders.status > ?", entity.ORDER_SYSTEM_PROCESS).
+			Scan(&result).Error
+	}, ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, err
+}
+
+func (g GormRepository) GetAllOrderDataRecordByAdmin(ctx context.Context, date string) ([]custom_entity.StatisticOrderRecordData, error) {
+	var result []custom_entity.StatisticOrderRecordData
+
+	err := g.client.Exec(func(tx *gormF.DB) error {
+		return tx.Table("orders").
+			Select("orders.order_id as order_id, "+
+				"orders.username as username, "+
+				"orders.sub_total as sub_total, "+
+				"orders.amount as amount, "+
+				"orders.status as status, "+
+				"delivery_orders.delivery_id as delivery_id, "+
+				"delivery_orders.delivery_name as delivery_name, "+
+				"orders.store_id as store_id, "+
+				"DATE_FORMAT(orders.created_at, '%Y-%m-%d') as created_date, "+
+				"orders.payment_method as payment_method, "+
+				"orders.shipping_cost as shipping_cost, "+
+				"orders.store_discount as svoucher_value, "+
+				"orders.payment_discount as pvoucher_value, "+
+				"orders_commission.system_fee as platform_fee, "+
+				"orders_commission.amount_received as store_received").
+			Joins("JOIN delivery_orders ON orders.order_id = delivery_orders.order_id").
+			Joins("JOIN orders_commission ON orders.order_id = orders_commission.order_id").
+			Where("DATE_FORMAT(orders.created_at, '%Y-%m') = ?", date).
+			Scan(&result).Error
+	}, ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result, err
+}
+
+func (g GormRepository) GetAllOrderDataRecordByStore(ctx context.Context, storeId string, date string) ([]custom_entity.StatisticOrderRecordData, error) {
+	var result []custom_entity.StatisticOrderRecordData
+	err := g.client.Exec(func(tx *gormF.DB) error {
+		return tx.Table("orders").
+			Select("orders.order_id as order_id, "+
+				"orders.username as username, "+
+				"orders.sub_total as sub_total, "+
+				"orders.amount as amount, "+
+				"orders.status as status, "+
+				"delivery_orders.delivery_id as delivery_id, "+
+				"delivery_orders.delivery_name as delivery_name, "+
+				"orders.store_id as store_id, "+
+				"DATE_FORMAT(orders.created_at, '%Y-%m-%d') as created_date, "+
+				"orders.payment_method as payment_method, "+
+				"orders.shipping_cost as shipping_cost, "+
+				"orders.store_discount as svoucher_value, "+
+				"orders.payment_discount as pvoucher_value, "+
+				"orders_commission.system_fee as platform_fee, "+
+				"orders_commission.amount_received as store_received").
+			Joins("JOIN delivery_orders ON orders.order_id = delivery_orders.order_id").
+			Joins("JOIN orders_commission ON orders.order_id = orders_commission.order_id").
+			Where("orders.store_id = ?", storeId).
+			Where("DATE_FORMAT(orders.created_at, '%Y-%m') = ?", date).
+			Scan(&result).Error
+	}, ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result, err
+
+}

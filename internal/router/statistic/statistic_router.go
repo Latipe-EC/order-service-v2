@@ -39,6 +39,10 @@ func (o orderStatisticRouter) Init(root *fiber.Router) {
 			o.middleware.Authentication.RequiredRole([]string{auth.ROLE_ADMIN}), o.statisticHandler.AdminGetTotalCommissionOrderInYear)
 		statisticRouter.Get("/admin/list-of-product",
 			o.middleware.Authentication.RequiredRole([]string{auth.ROLE_ADMIN}), o.statisticHandler.AdminListOfProductSoldOnMonth)
+		statisticRouter.Get("/admin/revenue-distribution",
+			o.middleware.Authentication.RequiredRole([]string{auth.ROLE_ADMIN}), o.statisticHandler.AdminGetRevenueDistributionInMonth)
+		statisticRouter.Get("/admin/business-report",
+			o.middleware.Authentication.RequiredRole([]string{auth.ROLE_ADMIN}), o.statisticHandler.AdminExportOrderData)
 
 		//store
 		statisticRouter.Get("/store/total-order/month",
@@ -49,5 +53,9 @@ func (o orderStatisticRouter) Init(root *fiber.Router) {
 			o.middleware.Authentication.RequiredStoreAuthentication(), o.statisticHandler.GetTotalStoreCommissionInYear)
 		statisticRouter.Get("/store/list-of-product",
 			o.middleware.Authentication.RequiredStoreAuthentication(), o.statisticHandler.ListOfProductSoldOnMonthStore)
+		statisticRouter.Get("/store/revenue-distribution",
+			o.middleware.Authentication.RequiredStoreAuthentication(), o.statisticHandler.GetStoreRevenueDistributionInMonth)
+		statisticRouter.Get("/store/business-report",
+			o.middleware.Authentication.RequiredStoreAuthentication(), o.statisticHandler.StoreExportOrderData)
 	}
 }

@@ -48,4 +48,9 @@ type OrderRepository interface {
 	StoreCountingOrder(ctx context.Context, storeId string) (int, error)
 	DeliveryCountingOrder(ctx context.Context, deliveryId string) (int, error)
 	AdminCountingOrder(ctx context.Context) (int, error)
+
+	GetStoreRevenueDistributionInMonth(ctx context.Context, storeId string, date string) (*custom_entity.StoreRevenuePer, error)
+	AdminRevenueDistributionInMonth(ctx context.Context, date string) (*custom_entity.AdminRevenuePer, error)
+	GetAllOrderDataRecordByAdmin(ctx context.Context, date string) ([]custom_entity.StatisticOrderRecordData, error)
+	GetAllOrderDataRecordByStore(ctx context.Context, storeId string, date string) ([]custom_entity.StatisticOrderRecordData, error)
 }
