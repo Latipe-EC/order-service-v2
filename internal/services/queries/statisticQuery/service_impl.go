@@ -181,7 +181,7 @@ func (o orderStatisticService) StoreExportOrderData(ctx context.Context, dto *st
 		log.Errorf("error get store data for export %v", err)
 		return nil, err
 	}
-	data, err := o.orderRepo.GetAllOrderDataRecordByStore(ctx, "65f3d1a51a74dabd449ee883", dto.Date)
+	data, err := o.orderRepo.GetAllOrderDataRecordByStore(ctx, dto.StoreID, dto.Date)
 	if err != nil {
 		log.Errorf("error get order data for export %v", err)
 		return nil, err
