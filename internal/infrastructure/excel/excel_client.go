@@ -44,11 +44,11 @@ func (e excelExportClient) ExportAdminOrderStatisticInMonth(createdBy string, qu
 		log.Error(err)
 		return "", nil, err
 	}
-	header := []string{"No", "Order ID", "Email",
-		"Store ID", "Delivery ID",
-		"Delivery Name", "Status", "Created Date",
-		"Payment Method", "Subtotal", "Shipping Cost",
-		"Platform Discount", "Store Discount", "Store Received", "Platform Received"}
+	header := []string{"No", "Mã đơn hàng", "Người tạo",
+		"Mã CH", "Mã ĐVVC",
+		"Tên ĐVVC", "Trạng thái", "Ngày tạo",
+		"Thanh toán", "Tổng SP", "Phí vận chuyển",
+		"Giảm giá (HT)", "Giảm giá (CH)", "Cửa hàng nhận", "Hê thống nhận"}
 	// Set value of a cell.
 
 	startC, err := excelize.JoinCellName("A", 3)
@@ -100,7 +100,7 @@ func (e excelExportClient) ExportAdminOrderStatisticInMonth(createdBy string, qu
 			return "", nil, err
 		}
 
-		if err := f.SetCellValue(sheetName, fmt.Sprintf("%s%d", "G", i+2+2), v.Status); err != nil {
+		if err := f.SetCellValue(sheetName, fmt.Sprintf("%s%d", "G", i+2+2), OrderStatusMapping(v.Status)); err != nil {
 			log.Error(err)
 			return "", nil, err
 		}
@@ -110,7 +110,7 @@ func (e excelExportClient) ExportAdminOrderStatisticInMonth(createdBy string, qu
 			return "", nil, err
 		}
 
-		if err := f.SetCellValue(sheetName, fmt.Sprintf("%s%d", "I", i+2+2), v.PaymentMethod); err != nil {
+		if err := f.SetCellValue(sheetName, fmt.Sprintf("%s%d", "I", i+2+2), PaymentMapping(v.PaymentMethod)); err != nil {
 			log.Error(err)
 			return "", nil, err
 		}
@@ -159,7 +159,7 @@ func (e excelExportClient) ExportAdminOrderStatisticInMonth(createdBy string, qu
 			return "", nil, err
 		}
 	}
-	if err := f.SetCellValue(sheetName, "A1", fmt.Sprintf("ADMIN Business Report [%s] ", queryTime)); err != nil {
+	if err := f.SetCellValue(sheetName, "A1", fmt.Sprintf("Báo cáo kinh doanh hệ thống [%s] ", queryTime)); err != nil {
 		log.Error(err)
 		return "", nil, err
 	}
@@ -173,12 +173,12 @@ func (e excelExportClient) ExportAdminOrderStatisticInMonth(createdBy string, qu
 		}
 	}
 
-	if err := f.SetCellValue(sheetName, "P1", fmt.Sprintf("Creator: %s ", createdBy)); err != nil {
+	if err := f.SetCellValue(sheetName, "P1", fmt.Sprintf("Người tạo: %s ", createdBy)); err != nil {
 		log.Error(err)
 		return "", nil, err
 	}
 
-	if err := f.SetCellValue(sheetName, "P2", fmt.Sprintf("Created at: %s ", currentTime.Format("2006/01/02 15:04:05"))); err != nil {
+	if err := f.SetCellValue(sheetName, "P2", fmt.Sprintf("Thời gian: %s ", currentTime.Format("2006/01/02 15:04:05"))); err != nil {
 		log.Error(err)
 		return "", nil, err
 	}
@@ -226,27 +226,27 @@ func (e excelExportClient) ExportAdminOrderStatisticInMonth(createdBy string, qu
 		}
 	}
 
-	if err := f.SetCellValue(sheetName, "P3", fmt.Sprintf("Total Platform Received: %s ₫", humanize.Comma(totalPlatformReceived))); err != nil {
+	if err := f.SetCellValue(sheetName, "P3", fmt.Sprintf("Tổng tiền hệ thống nhận: %s ₫", humanize.Comma(totalPlatformReceived))); err != nil {
 		log.Error(err)
 		return "", nil, err
 	}
 
-	if err := f.SetCellValue(sheetName, "P4", fmt.Sprintf("Total Store Recevied: %s ₫", humanize.Comma(totalStoreReceived))); err != nil {
+	if err := f.SetCellValue(sheetName, "P4", fmt.Sprintf("Tổng tiền CH nhận: %s ₫", humanize.Comma(totalStoreReceived))); err != nil {
 		log.Error(err)
 		return "", nil, err
 	}
 
-	if err := f.SetCellValue(sheetName, "P5", fmt.Sprintf("Total Shipping Cost: %s ₫", humanize.Comma(totalShippingCost))); err != nil {
+	if err := f.SetCellValue(sheetName, "P5", fmt.Sprintf("Tổng phí vận chuyển: %s ₫", humanize.Comma(totalShippingCost))); err != nil {
 		log.Error(err)
 		return "", nil, err
 	}
 
-	if err := f.SetCellValue(sheetName, "P6", fmt.Sprintf("Total Platform Discount: %s ₫", humanize.Comma(totalPlatformDiscount))); err != nil {
+	if err := f.SetCellValue(sheetName, "P6", fmt.Sprintf("Tổng giảm giá HT: %s ₫", humanize.Comma(totalPlatformDiscount))); err != nil {
 		log.Error(err)
 		return "", nil, err
 	}
 
-	if err := f.SetCellValue(sheetName, "P7", fmt.Sprintf("Total Store Discount: %s ₫", humanize.Comma(totalStoreDiscount))); err != nil {
+	if err := f.SetCellValue(sheetName, "P7", fmt.Sprintf("Tổng giảm giá CH: %s ₫", humanize.Comma(totalStoreDiscount))); err != nil {
 		log.Error(err)
 		return "", nil, err
 	}
@@ -295,11 +295,11 @@ func (e excelExportClient) ExportStoreOrderStatisticInMonth(storeName string, cr
 	}
 	f.SetActiveSheet(index)
 
-	header := []string{"No", "Order ID", "Email",
-		"Store ID", "Delivery ID",
-		"Delivery Name", "Status", "Created Date",
-		"Payment Method", "Subtotal", "Shipping Cost",
-		"Platform Discount", "Store Discount", "Store Received", "Platform Received"}
+	header := []string{"STT", "Mã đơn hàng", "Người tạo",
+		"Mã CH", "Mã ĐVVC",
+		"Tên ĐVVC", "Trạng thái", "Ngày tạo",
+		"Thanh toán", "Tổng SP", "Phí vận chuyển",
+		"Giảm giá (HT)", "Giảm giá (CH)", "Cửa hàng nhận", "Hệ thống nhận"}
 	// Set value of a cell.
 
 	startC, err := excelize.JoinCellName("A", 3)
@@ -351,7 +351,7 @@ func (e excelExportClient) ExportStoreOrderStatisticInMonth(storeName string, cr
 			return "", nil, err
 		}
 
-		if err := f.SetCellValue(sheetName, fmt.Sprintf("%s%d", "G", i+2+2), v.Status); err != nil {
+		if err := f.SetCellValue(sheetName, fmt.Sprintf("%s%d", "G", i+2+2), OrderStatusMapping(v.Status)); err != nil {
 			log.Error(err)
 			return "", nil, err
 		}
@@ -361,7 +361,7 @@ func (e excelExportClient) ExportStoreOrderStatisticInMonth(storeName string, cr
 			return "", nil, err
 		}
 
-		if err := f.SetCellValue(sheetName, fmt.Sprintf("%s%d", "I", i+2+2), v.PaymentMethod); err != nil {
+		if err := f.SetCellValue(sheetName, fmt.Sprintf("%s%d", "I", i+2+2), PaymentMapping(v.PaymentMethod)); err != nil {
 			log.Error(err)
 			return "", nil, err
 		}
@@ -410,7 +410,7 @@ func (e excelExportClient) ExportStoreOrderStatisticInMonth(storeName string, cr
 			return "", nil, err
 		}
 	}
-	if err := f.SetCellValue(sheetName, "A1", fmt.Sprintf("STORE Business Report [%s] - STORE: %s", queryTime, storeName)); err != nil {
+	if err := f.SetCellValue(sheetName, "A1", fmt.Sprintf("Báo cáo kinh doanh [%s] - Cửa Hàng: %s", queryTime, storeName)); err != nil {
 		log.Error(err)
 		return "", nil, err
 	}
@@ -424,12 +424,12 @@ func (e excelExportClient) ExportStoreOrderStatisticInMonth(storeName string, cr
 		}
 	}
 
-	if err := f.SetCellValue(sheetName, "P1", fmt.Sprintf("Creator: %s ", createBy)); err != nil {
+	if err := f.SetCellValue(sheetName, "P1", fmt.Sprintf("Người tạo: %s ", createBy)); err != nil {
 		log.Error(err)
 		return "", nil, err
 	}
 
-	if err := f.SetCellValue(sheetName, "P2", fmt.Sprintf("Created at: %s ", currentTime.Format("2006/01/02 15:04:05"))); err != nil {
+	if err := f.SetCellValue(sheetName, "P2", fmt.Sprintf("Thời gian: %s ", currentTime.Format("2006/01/02 15:04:05"))); err != nil {
 		log.Error(err)
 		return "", nil, err
 	}
@@ -477,27 +477,27 @@ func (e excelExportClient) ExportStoreOrderStatisticInMonth(storeName string, cr
 		}
 	}
 
-	if err := f.SetCellValue(sheetName, "P3", fmt.Sprintf("Total Platform Received: %s ₫", humanize.Comma(totalPlatformReceived))); err != nil {
+	if err := f.SetCellValue(sheetName, "P3", fmt.Sprintf("Tổng số tiền hệ thống nhận: %s ₫", humanize.Comma(totalPlatformReceived))); err != nil {
 		log.Error(err)
 		return "", nil, err
 	}
 
-	if err := f.SetCellValue(sheetName, "P4", fmt.Sprintf("Total Store Recevied: %s ₫", humanize.Comma(totalStoreReceived))); err != nil {
+	if err := f.SetCellValue(sheetName, "P4", fmt.Sprintf("Tổng số tiền CH nhận: %s ₫", humanize.Comma(totalStoreReceived))); err != nil {
 		log.Error(err)
 		return "", nil, err
 	}
 
-	if err := f.SetCellValue(sheetName, "P5", fmt.Sprintf("Total Shipping Cost: %s ₫", humanize.Comma(totalShippingCost))); err != nil {
+	if err := f.SetCellValue(sheetName, "P5", fmt.Sprintf("Tổng phí vận chuyển: %s ₫", humanize.Comma(totalShippingCost))); err != nil {
 		log.Error(err)
 		return "", nil, err
 	}
 
-	if err := f.SetCellValue(sheetName, "P6", fmt.Sprintf("Total Platform Discount: %s ₫", humanize.Comma(totalPlatformDiscount))); err != nil {
+	if err := f.SetCellValue(sheetName, "P6", fmt.Sprintf("Tổng giảm giá hệ thống: %s ₫", humanize.Comma(totalPlatformDiscount))); err != nil {
 		log.Error(err)
 		return "", nil, err
 	}
 
-	if err := f.SetCellValue(sheetName, "P7", fmt.Sprintf("Total Store Discount: %s ₫", humanize.Comma(totalStoreDiscount))); err != nil {
+	if err := f.SetCellValue(sheetName, "P7", fmt.Sprintf("Tổng giảm giá CH: %s ₫", humanize.Comma(totalStoreDiscount))); err != nil {
 		log.Error(err)
 		return "", nil, err
 	}

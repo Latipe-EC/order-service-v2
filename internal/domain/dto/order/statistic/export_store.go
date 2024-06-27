@@ -3,9 +3,9 @@ package statistic
 import "bytes"
 
 type ExportOrderDataForStoreRequest struct {
-	Date    string `query:"date" validate:"required"` //yyyy-mm
-	UserID  string
-	StoreID string
+	Date     string `query:"date" validate:"required"` //yyyy-mm
+	Username string
+	StoreID  string
 }
 
 type ExportOrderDataForStoreResponse struct {

@@ -187,7 +187,7 @@ func (o orderStatisticService) StoreExportOrderData(ctx context.Context, dto *st
 		return nil, err
 	}
 
-	path, fileAttch, err := o.excelExport.ExportStoreOrderStatisticInMonth(storeResp.Name, dto.UserID, dto.Date, data)
+	path, fileAttch, err := o.excelExport.ExportStoreOrderStatisticInMonth(storeResp.Name, dto.Username, dto.Date, data)
 	if err != nil {
 		log.Errorf("error export order data for admin %v", err)
 		return nil, err

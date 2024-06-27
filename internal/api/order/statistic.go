@@ -504,6 +504,9 @@ func (s statisticApiHandler) StoreExportOrderData(ctx *fiber.Ctx) error {
 	storeID := fmt.Sprintf("%v", ctx.Locals(auth.STORE_ID))
 	req.StoreID = storeID
 
+	username := fmt.Sprintf("%v", ctx.Locals(auth.USERNAME))
+	req.Username = username
+
 	result, err := s.orderStatisticUsecase.StoreExportOrderData(context, &req)
 	if err != nil {
 		return errors.ErrBadRequest.WithInternalError(err)
