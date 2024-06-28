@@ -87,7 +87,7 @@ func New(c Config, redisClient *cacheV8.CacheEngine) (Gorm, error) {
 		sqlDB.SetConnMaxIdleTime(c.ConnMaxIdleTime)
 	}
 
-	_ = db.Use(NewCacheGormPlugin(redisClient))
+	//_ = db.Use(NewCacheGormPlugin(redisClient))
 	return &_gorm{
 		db:    db,
 		sqlDB: sqlDB,
