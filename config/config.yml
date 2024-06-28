@@ -56,6 +56,10 @@ RabbitMQ:
     RoutingKey: rating_routing_key
     Queue: internal.rating
 
+  NotificationEvent:
+    Exchange: notify_exchange
+    RoutingKey: notify.send
+
 AdapterService:
   AuthService:
     BaseURL: http://localhost:8081
