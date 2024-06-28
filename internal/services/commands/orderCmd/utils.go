@@ -123,3 +123,7 @@ func GenKeyOrder(userId string) string {
 	keyGen := strings.ReplaceAll(uuid.NewString(), "-", "")[:8]
 	return fmt.Sprintf("orvn%v%v", userId[:4], keyGen)
 }
+
+func isMatchPaymentMethod(required int, act int) bool {
+	return required == 0 || required == act
+}

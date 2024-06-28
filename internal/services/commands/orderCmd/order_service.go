@@ -265,23 +265,25 @@ func (o orderCommandService) handlePromotionData(ctx context.Context, orders []*
 		var voucherCode []string
 		//shipping vouchers
 		if promotionData.FreeShippingVoucherInfo != nil {
-			sVoucherReq := orderQuery.MappingShippingVoucherRequest(promotionData, entity, entity.StoreId)
-			if sVoucherReq != nil {
-				resp, err := o.voucherGrpc.CheckoutVoucherForPurchase(ctx, sVoucherReq)
-				if err != nil {
-					return err
-				}
+			sVoucherReq := orderQuery.MappingShippingVoucherRequest(promotionData, entity)
+			if sVoucherReq == nil {
+				continue
+			}
 
-				if resp != nil {
-					if resp.VoucherDetail != nil {
-						if uint64(entity.ShippingCost) < resp.VoucherDetail.DiscountData.ShippingValue {
-							entity.ShippingDiscount = entity.ShippingCost
-						} else {
-							entity.ShippingDiscount = int(resp.VoucherDetail.DiscountData.ShippingValue)
-						}
-						voucherCode = append(voucherCode, resp.VoucherDetail.VoucherCode)
-					}
+			resp, err := o.voucherGrpc.CheckoutVoucherForPurchase(ctx, sVoucherReq)
+			if err != nil {
+				return err
+			}
+
+			if int64(entity.Amount) >= resp.VoucherDetail.VoucherRequire.MinRequire &&
+				isMatchPaymentMethod(int(resp.VoucherDetail.VoucherRequire.PaymentMethod), entity.PaymentMethod) {
+
+				if uint64(entity.ShippingCost) < resp.VoucherDetail.DiscountData.ShippingValue {
+					entity.ShippingDiscount = entity.ShippingCost
+				} else {
+					entity.ShippingDiscount = int(resp.VoucherDetail.DiscountData.ShippingValue)
 				}
+				voucherCode = append(voucherCode, resp.VoucherDetail.VoucherCode)
 			}
 		}
 
@@ -441,6 +443,10 @@ func (o orderCommandService) DeliveryUpdateOrderStatus(ctx context.Context, dto 
 		}
 		bodyContent = fmt.Sprintf("Xin chào, đơn hàng [%v] của bạn đã giao thành công.", orderDAO.OrderID)
 
+		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_COMPLETED, "Hoàn tất đơn hàng"); err != nil {
+			return err
+		}
+
 	default:
 		return errors.OrderCannotUpdate
 	}
@@ -448,12 +454,6 @@ func (o orderCommandService) DeliveryUpdateOrderStatus(ctx context.Context, dto 
 	userNoti := msgDTO.NewNotificationMessage(msgDTO.NOTIFY_USER, orderDAO.UserId, "[Latipe] Thông báo tình trạng đơn hàng", bodyContent, orderDAO.Thumbnail)
 	//send message to user
 	if err := o.notifyPub.NotifyToUser(userNoti); err != nil {
-		return err
-	}
-
-	storeNoti := msgDTO.NewNotificationMessage(msgDTO.NOTIFY_STORE, orderDAO.StoreId, "[Latipe] Thông báo tình trạng đơn hàng", bodyContent, orderDAO.Thumbnail)
-	//send message to user
-	if err := o.notifyPub.NotifyToUser(storeNoti); err != nil {
 		return err
 	}
 
