@@ -12,7 +12,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
-	"github.com/gofiber/fiber/v2/middleware/cors"
 	healthcheck2 "github.com/gofiber/fiber/v2/middleware/healthcheck"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
@@ -78,11 +77,11 @@ func New() (*Server, error) {
 	userServiceClient := usergrpc.NewUserServiceClientGRPCImpl(configConfig)
 	notificationMessagePublisher := publisher.NewNotificationMessagePublisher(configConfig, connection)
 	service := storeserv.NewStoreServiceAdapter(configConfig)
-	orderCommandUsecase := orderCmd.NewOrderCommandService(configConfig, orderRepository, commissionRepository, cacheV9CacheEngine, publisherTransactionMessage, voucherServiceClient, productServiceClient, deliveryServiceClient, userServiceClient, notificationMessagePublisher, service)
+	deliveryservService := deliveryserv.NewDeliServHttpAdapter(configConfig)
+	orderCommandUsecase := orderCmd.NewOrderCommandService(configConfig, orderRepository, commissionRepository, cacheV9CacheEngine, publisherTransactionMessage, voucherServiceClient, productServiceClient, deliveryServiceClient, userServiceClient, notificationMessagePublisher, service, deliveryservService)
 	orderQueryUsecase := orderQuery.NewOrderQueryService(orderRepository)
 	orderApiHandler := order2.NewOrderHandler(orderCommandUsecase, orderQueryUsecase)
 	authservService := authserv.NewAuthServHttpAdapter(configConfig)
-	deliveryservService := deliveryserv.NewDeliServHttpAdapter(configConfig)
 	authenticationMiddleware := auth.NewAuthMiddleware(authservService, service, deliveryservService, configConfig, cacheV9CacheEngine)
 	middlewareMiddleware := middleware.NewMiddleware(authenticationMiddleware)
 	adminOrderRouter := adminRouter.NewAdminOrderRouter(orderApiHandler, middlewareMiddleware)
@@ -125,12 +124,6 @@ func NewServer(
 
 	recoverConfig := recover2.ConfigDefault
 	app.Use(recover2.New(recoverConfig))
-
-	app.Use(cors.New(cors.Config{
-		AllowOrigins: "http://127.0.0.1:5500, http://127.0.0.1:5173, http://localhost:5500, http://localhost:5173",
-		AllowHeaders: "*",
-		AllowMethods: "*",
-	}))
 
 	basicAuthConfig := basicauth.Config{
 		Users: map[string]string{

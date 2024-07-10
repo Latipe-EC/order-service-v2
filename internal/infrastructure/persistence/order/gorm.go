@@ -101,6 +101,7 @@ func (g GormRepository) FindAll(ctx context.Context, query *pagable.Query) ([]en
 			Preload("OrderItem").
 			Preload("Delivery").
 			Where(whereState).
+			Order("created_at desc").
 			Limit(query.GetLimit()).Offset(query.GetOffset()).
 			Find(&orders).Error
 	}, ctx)
@@ -152,6 +153,7 @@ func (g GormRepository) FindOrderByStoreID(ctx context.Context, storeId string, 
 		Where("orders.store_id=?", storeId).
 		Where(whereState).
 		Where(likeState).
+		Order("created_at desc").
 		Limit(query.GetLimit()).Offset(query.GetOffset()).
 		Find(&orders).Error
 

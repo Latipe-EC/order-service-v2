@@ -13,6 +13,7 @@ import (
 	"latipe-order-service-v2/internal/domain/dto/order/store"
 	"latipe-order-service-v2/internal/domain/entities/order"
 	"latipe-order-service-v2/internal/domain/msgDTO"
+	"latipe-order-service-v2/internal/infrastructure/adapter/deliveryserv"
 	"latipe-order-service-v2/internal/infrastructure/adapter/storeserv"
 	dto2 "latipe-order-service-v2/internal/infrastructure/adapter/storeserv/dto"
 	voucherConst "latipe-order-service-v2/internal/infrastructure/adapter/vouchersev/dto"
@@ -41,7 +42,8 @@ type orderCommandService struct {
 	deliveryGrpc deliverygrpc.DeliveryServiceClient
 	userGrpc     usergrpc.UserServiceClient
 	//rest call
-	storeServ storeserv.Service
+	storeServ    storeserv.Service
+	deliveryServ deliveryserv.Service
 }
 
 func NewOrderCommandService(cfg *config.Config, orderRepo order.OrderRepository,
@@ -49,7 +51,7 @@ func NewOrderCommandService(cfg *config.Config, orderRepo order.OrderRepository,
 	cacheEngine *cacheV9.CacheEngine, publisher *publishMsg.PublisherTransactionMessage,
 	voucherGrpc vouchergrpc.VoucherServiceClient, productGrpc productgrpc.ProductServiceClient,
 	deliveryGrpc deliverygrpc.DeliveryServiceClient, userGrpc usergrpc.UserServiceClient, notifyPub *publishMsg.NotificationMessagePublisher,
-	storeServ storeserv.Service) OrderCommandUsecase {
+	storeServ storeserv.Service, deliveryServ deliveryserv.Service) OrderCommandUsecase {
 	return orderCommandService{
 		orderRepo:      orderRepo,
 		commissionRepo: commissionRepo,
@@ -61,6 +63,7 @@ func NewOrderCommandService(cfg *config.Config, orderRepo order.OrderRepository,
 		productGrpc:    productGrpc,
 		userGrpc:       userGrpc,
 		storeServ:      storeServ,
+		deliveryServ:   deliveryServ,
 		notifyPub:      notifyPub,
 	}
 }
@@ -358,6 +361,7 @@ func (o orderCommandService) StoreUpdateOrderStatus(ctx context.Context, dto *st
 	}
 
 	var bodyContent string
+	deliMessage := false
 
 	switch dto.Status {
 	case order.ORDER_PREPARED:
@@ -365,6 +369,7 @@ func (o orderCommandService) StoreUpdateOrderStatus(ctx context.Context, dto *st
 			return err
 		}
 
+		deliMessage = true
 		bodyContent = fmt.Sprintf("Xin chào, đơn hàng của bạn đã được cửa hàng xác nhận #[%v]", orderDAO.OrderID)
 	case order.ORDER_CANCEL_BY_STORE:
 		if err := o.orderRepo.UpdateStatus(ctx, orderDAO.OrderID, order.ORDER_CANCEL_BY_STORE,
@@ -377,13 +382,21 @@ func (o orderCommandService) StoreUpdateOrderStatus(ctx context.Context, dto *st
 		return errors.OrderCannotUpdate
 	}
 
-	userNoti := msgDTO.NewNotificationMessage(msgDTO.NOTIFY_USER, orderDAO.UserId, "[Latipe] Thông báo tình trạng đơn hàng", bodyContent, orderDAO.Thumbnail)
-
 	//send message to user
+	userNoti := msgDTO.NewNotificationMessage(msgDTO.NOTIFY_USER, orderDAO.UserId, "[Latipe] Thông báo tình trạng đơn hàng", bodyContent, orderDAO.Thumbnail)
 	if err := o.notifyPub.NotifyToUser(userNoti); err != nil {
-		return err
+		log.Error(err)
 	}
-
+	// send to deli
+	if deliMessage {
+		var err error
+		deliNoti := msgDTO.NewNotificationMessage(msgDTO.NOTIFY_USER, orderDAO.Delivery.DeliveryId, "[Latipe] Thông báo tình trạng đơn hàng",
+			fmt.Sprintf("Bạn có đơn hàng chờ vận chuyển [%v]", strings.ToUpper(orderDAO.OrderID)),
+			orderDAO.Thumbnail)
+		if err = o.notifyPub.NotifyToUser(deliNoti); err != nil {
+			log.Error(err)
+		}
+	}
 	return nil
 }
 
